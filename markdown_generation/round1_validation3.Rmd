@@ -1,0 +1,49 @@
+${toc}
+
+```{r setup, echo = FALSE, include = F}
+library(knitr)
+library(yaml)
+library(tidyverse)
+library(bigrquery)
+library(magrittr)
+library(plotly)
+
+config <- read_yaml("config.yaml")
+round  <- "1"
+CURRENT_TEAM <- config$team
+
+source("markdown_functions.R")
+source("plot_functions.R")
+
+
+
+```
+# Peptide binding predicted vs measured
+
+Shown below is the comparison of predicted and measured binding values for your team's peptides.
+
+For a given patient, the absence of a plot implies none of your teams predicted neoepitopes for that patient were validated.
+
+## Patient 1
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_scatterplot("1")
+```
+`r text`
+
+## Patient 2
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_scatterplot("2")
+```
+`r text`
+
+## Patient 3
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_scatterplot("3")
+```
+`r text`
+
+## Patient 4
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_scatterplot("4")
+```
+`r text`

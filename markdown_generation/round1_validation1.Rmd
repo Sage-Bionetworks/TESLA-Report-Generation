@@ -1,0 +1,173 @@
+${toc}
+
+```{r setup, echo = FALSE, include = F}
+library(knitr)
+library(yaml)
+library(tidyverse)
+library(bigrquery)
+library(magrittr)
+library(plotly)
+
+config <- read_yaml("config.yaml")
+round  <- "1"
+CURRENT_TEAM <- config$team
+
+source("markdown_functions.R")
+source("plot_functions.R")
+source("query_functions.R")
+
+
+
+validation_dbi <- DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_2") %>% 
+    dplyr::tbl("Validated_bindings") %>% 
+    dplyr::filter(!is.na(LJI_BINDING)) %>% 
+    dplyr::mutate(LOG_MEASURED_BINDING = log10(LJI_BINDING + 1)) %>%
+    dplyr::rename(PATIENT_ID = PATIENT) %>%
+    dplyr::select(ALT_EPI_SEQ, HLA_ALLELE, PATIENT_ID, LOG_MEASURED_BINDING) %>% 
+    dplyr::mutate(TEAM = "Measured")
+
+# validation_dbi <- DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+#     dplyr::tbl("Validated_bindings") %>% 
+#     dplyr::filter(!is.na(LJI_BINDING)) %>% 
+#     dplyr::mutate(LOG_MEASURED_BINDING = log10(LJI_BINDING + 1))  %>% 
+#     dplyr::select(ALT_EPI_SEQ, HLA_ALLELE, PATIENT_ID, LOG_MEASURED_BINDING)
+#     dplyr::mutate(TEAM = "Measured")
+
+prediction_dbi <- make_prediction_dbi_for_validation_plots(round) 
+    
+
+team_prediction_df <- prediction_dbi %>% 
+    dplyr::filter(TEAM == CURRENT_TEAM) %>% 
+    dplyr::select(
+        PATIENT_ID, 
+        HLA_ALLELE, 
+        ALT_EPI_SEQ,
+        TEAM, 
+        LOG_PREDICTED_BINDING) %>% 
+    dplyr::mutate(TEAM = "Your team") %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::mutate(HLA_ALLELE = stringr::str_remove_all(HLA_ALLELE, "[:punct:]"))  # remove !!!!
+
+nonteam_prediction_df <- prediction_dbi %>% 
+    dplyr::filter(TEAM != CURRENT_TEAM) %>% 
+    dplyr::filter(!SUBMITTED_LATE) %>% 
+    dplyr::select(
+        PATIENT_ID, 
+        HLA_ALLELE, 
+        ALT_EPI_SEQ,
+        TEAM, 
+        LOG_PREDICTED_BINDING) %>% 
+    dplyr::mutate(TEAM = "Other teams") %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::mutate(HLA_ALLELE = stringr::str_remove_all(HLA_ALLELE, "[:punct:]"))  # remove !!!!
+
+validation_df <- validation_dbi %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::mutate(PATIENT_ID = str_remove_all(PATIENT_ID, "Patient_"))
+
+validated_epitope_df <- 
+    inner_join(
+        team_prediction_df, 
+        validation_df, 
+        by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ")) %>% 
+    dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ) %>% 
+    dplyr::distinct()
+
+dotplot_df <-
+    dplyr::bind_rows(
+        dplyr::rename(team_prediction_df, LOG_BINDING = LOG_PREDICTED_BINDING), 
+        dplyr::rename(nonteam_prediction_df, LOG_BINDING = LOG_PREDICTED_BINDING),
+        dplyr::rename(validation_df, LOG_BINDING = LOG_MEASURED_BINDING)
+        ) %>% 
+    dplyr::inner_join(validated_epitope_df)
+    
+team_alleles <- dotplot_df %>%
+    magrittr::use_series(HLA_ALLELE) %>%
+    unique() %>%
+    sort
+
+allele_dfs <- dotplot_df %>%
+    dplyr::filter(HLA_ALLELE %in% team_alleles) %>%
+    dplyr::group_by(HLA_ALLELE) %>%
+    dplyr::group_split() %>%
+    magrittr::set_names(team_alleles) %>% 
+    purrr::map(relevel_df)
+
+```
+
+# Predicted and measured binding values for peptides tested thus far.
+Values are shown for peptides predicted by your team, as well as values predicted for those same peptides by other teams, and the measured binding values.
+
+For a given allele, the absence of a plot implies none of your teams predicted neoepitopes for that allele were validated.
+
+
+## A*01:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("A0101")
+```
+`r text`
+
+## A*02:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("A0201")
+```
+`r text`
+
+## A*03:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("A0301")
+```
+`r text`
+
+## A*32:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("A3201")
+```
+`r text`
+
+## A*68:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("A6801")
+```
+
+## B*07:02
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("B0702")
+```
+`r text`
+
+## B*08:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("B0801")
+```
+`r text`
+
+## B*44:02
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("B4402")
+```
+`r text`
+
+## B*51:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("B5101")
+```
+`r text`
+
+## B*57:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("B5701")
+```
+`r text`
+
+## C*03:03
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("C0303")
+```
+`r text`
+
+## C*05:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("C0501")
+```
+`r text`
