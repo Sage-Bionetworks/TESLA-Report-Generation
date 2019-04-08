@@ -1,0 +1,94 @@
+${toc}
+
+```{r setup, echo = FALSE, include = F}
+library(knitr)
+library(yaml)
+library(tidyverse)
+library(bigrquery)
+library(magrittr)
+library(plotly)
+
+config <- read_yaml("config.yaml")
+round  <- "2"
+src    <- "vcf"
+CURRENT_TEAM <- config$team
+
+source("markdown_functions.R")
+source("plot_functions.R")
+source("query_functions.R")
+
+submission_dbis <- make_dbis_for_submission_plots(round, src)
+
+log_peptides_df <- submission_dbis[["log_peptides_dbi"]] %>% 
+    dplyr::as_tibble() %>% 
+    code_df_by_team(CURRENT_TEAM)
+
+peptide_length_df <- submission_dbis[["peptide_length_dbi"]] %>% 
+     dplyr::as_tibble() %>% 
+    code_df_by_team(CURRENT_TEAM)
+
+agretopicity_df <- submission_dbis[["agretopicity_dbi"]] %>% 
+    dplyr::as_tibble() %>% 
+    code_df_by_team(CURRENT_TEAM)
+
+overlap_df <- submission_dbis[["overlap_dbi"]] %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::mutate(PMHC = stringr::str_c(HLA_ALLELE, "_", ALT_EPI_SEQ)) %>% 
+    dplyr::select(TEAM, PATIENT_ID, PMHC, RANK)
+
+patients <- overlap_df %>% 
+    magrittr::use_series(PATIENT_ID) %>% 
+    unique %>% unique %>% 
+    sort
+  
+epitope_overlap_df <-
+    purrr::map(
+        patients,
+        create_p_common_matrix, 
+        overlap_df) %>% 
+    purrr::map(create_median_table) %>%
+    purrr::map2(patients, ~inset(.x, "patient", value = .y)) %>% 
+    dplyr::bind_rows() %>% 
+    magrittr::set_names(c("TEAM", "SCORE", "PATIENT_ID")) %>% 
+    dplyr::mutate(PATIENT_ID = as.factor(PATIENT_ID)) %>% 
+    code_df_by_team(CURRENT_TEAM)
+
+```
+
+# Comparisons of submitted peptide data
+
+
+## Number of submitted peptides
+Round 1 consisted of data for 5 patients. For each patient, the total number of ranked peptides submitted by each team is shown below. Your team's value is shown by a red triangle.
+
+```{r echo = F, fig.width = 20, fig.height = 10}
+make_submissions_boxplot(log_peptides_df)
+text <- ""
+```
+`r text`
+
+## Characteristics of top 20 peptide submissions
+The distribution of peptide lengths for top 20 ranked peptides is shown. Your team's value is highlighted with a red outline.
+
+```{r echo = F, fig.width = 20, fig.height = 10}
+make_agretopicity_boxplot(agretopicity_df)
+text <- ""
+```
+`r text`
+
+## Agretopicity Index (HLA binding ALT / HLA binding REF)
+The distribution of the agretopicity index for the top 20 ranked peptides is shown.
+```{r echo = F, fig.width = 20, fig.height = 10}
+make_pep_length_barchart(peptide_length_df)
+text <- ""
+```
+`r text`
+
+## Overlap top 20 submissions
+For each combination of team A and team B, the overlap of the team's top 20 ranked peptides was calculated as: intersect(A,B) / length(A), where A and B are vectors of top 20 peptides for teams A and B. The numerator term intersect(A,B) is the number of peptides in common; the denominator is the number of top 20 peptides predicted by team A, which in some cases is less than 20. Then for each team, the median was calculated across all comparisons of that team with other teams. Your team's value is shown by a red triangle.
+
+```{r echo = F, fig.width = 20, fig.height = 10}
+make_epitope_overlap_boxplot(epitope_overlap_df)
+text <- ""
+```
+`r text`
