@@ -10,13 +10,14 @@ library(plotly)
 
 config <- read_yaml("config.yaml")
 round  <- "1"
+src    <- "fastq"
 CURRENT_TEAM <- config$team
 
 source("markdown_functions.R")
 source("plot_functions.R")
 source("query_functions.R")
 
-submission_dbis <- make_dbis_for_submission_plots(round)
+submission_dbis <- make_dbis_for_submission_plots(round, src)
 
 log_peptides_df <- submission_dbis[["log_peptides_dbi"]] %>% 
     dplyr::as_tibble() %>% 
