@@ -1,0 +1,62 @@
+${toc}
+
+```{r setup, echo = FALSE, include = F}
+library(knitr)
+library(yaml)
+library(tidyverse)
+library(magrittr)
+library(synapser)
+
+synLogin()
+
+config <- read_yaml("config.yaml")
+patients <- c("10", "11", "12", "14", "15", "16")
+CURRENT_TEAM <- config$team
+
+source("markdown_functions.R")
+source("plot_functions.R")
+source("query_functions.R")
+
+knitr::read_chunk("knitr_chunks.R")
+
+```
+
+```{r variant counts, echo = FALSE, include = F}
+```
+The distribution of the number of variants in each variant type defined by bcftools is shown. Your team's value is shown by a red traingle.
+
+# Patient 10
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_boxplot("10", variant_count_df)
+```
+`r text`
+
+# Patient 11
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_boxplot("11", variant_count_df)
+```
+`r text`
+
+# Patient 12
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_boxplot("12", variant_count_df)
+```
+`r text`
+
+# Patient 14
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_boxplot("14", variant_count_df)
+```
+`r text`
+
+# Patient 15
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_boxplot("15", variant_count_df)
+```
+`r text`
+
+# Patient 16
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_boxplot("16", variant_count_df)
+```
+`r text`

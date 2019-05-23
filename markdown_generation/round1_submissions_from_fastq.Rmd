@@ -17,42 +17,10 @@ source("markdown_functions.R")
 source("plot_functions.R")
 source("query_functions.R")
 
-submission_dbis <- make_dbis_for_submission_plots(round, src)
+knitr::read_chunk("knitr_chunks.R")
+```
 
-log_peptides_df <- submission_dbis[["log_peptides_dbi"]] %>% 
-    dplyr::as_tibble() %>% 
-    code_df_by_team(CURRENT_TEAM)
-
-peptide_length_df <- submission_dbis[["peptide_length_dbi"]] %>% 
-     dplyr::as_tibble() %>% 
-    code_df_by_team(CURRENT_TEAM)
-
-agretopicity_df <- submission_dbis[["agretopicity_dbi"]] %>% 
-    dplyr::as_tibble() %>% 
-    code_df_by_team(CURRENT_TEAM)
-
-overlap_df <- submission_dbis[["overlap_dbi"]] %>% 
-    dplyr::as_tibble() %>% 
-    dplyr::mutate(PMHC = stringr::str_c(HLA_ALLELE, "_", ALT_EPI_SEQ)) %>% 
-    dplyr::select(TEAM, PATIENT_ID, PMHC, RANK)
-
-patients <- overlap_df %>% 
-    magrittr::use_series(PATIENT_ID) %>% 
-    unique %>% unique %>% 
-    sort
-  
-epitope_overlap_df <-
-    purrr::map(
-        patients,
-        create_p_common_matrix, 
-        overlap_df) %>% 
-    purrr::map(create_median_table) %>%
-    purrr::map2(patients, ~inset(.x, "patient", value = .y)) %>% 
-    dplyr::bind_rows() %>% 
-    magrittr::set_names(c("TEAM", "SCORE", "PATIENT_ID")) %>% 
-    dplyr::mutate(PATIENT_ID = as.factor(PATIENT_ID)) %>% 
-    code_df_by_team(CURRENT_TEAM)
-
+```{r submissions, echo = FALSE, include = F}
 ```
 
 # Comparisons of submitted peptide data

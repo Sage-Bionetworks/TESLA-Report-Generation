@@ -1,0 +1,62 @@
+${toc}
+
+```{r setup, echo = FALSE, include = F}
+library(knitr)
+library(yaml)
+library(tidyverse)
+library(magrittr)
+library(synapser)
+
+synLogin()
+
+config <- read_yaml("config.yaml")
+round <- "2"
+CURRENT_TEAM <- config$team
+
+source("markdown_functions.R")
+source("plot_functions.R")
+source("query_functions.R")
+
+knitr::read_chunk("knitr_chunks.R")
+
+```
+
+```{r variant overlap, echo = FALSE, include = F}
+```
+Submitted VCFs were sorted compared using bcftools stats. We then extracted the variants used to predict the top 20 peptides. For each combination of team A and team B, the overlap of these variants was calculated as: intersect(A,B) / length(A). Then for each team, the median was calculated across all comparisons of that team with other teams. Your team's value is shown by a red dot.
+
+# Patient 10
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_histogram("10", variant_overlap_df)
+```
+`r text`
+
+# Patient 11
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_histogram("11", variant_overlap_df)
+```
+`r text`
+
+# Patient 12
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_histogram("12", variant_overlap_df)
+```
+`r text`
+
+# Patient 14
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_histogram("14", variant_overlap_df)
+```
+`r text`
+
+# Patient 15
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_histogram("15", variant_overlap_df)
+```
+`r text`
+
+# Patient 16
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_variant_histogram("16", variant_overlap_df)
+```
+`r text`

@@ -4,12 +4,13 @@ ${toc}
 library(knitr)
 library(yaml)
 library(tidyverse)
-library(bigrquery)
 library(magrittr)
+library(synapser)
+
+synLogin()
 
 config <- read_yaml("config.yaml")
-round  <- "1"
-src <- "fastq"
+patients <- c("1", "2", "3", "4", "5")
 CURRENT_TEAM <- config$team
 
 source("markdown_functions.R")
@@ -20,34 +21,30 @@ knitr::read_chunk("knitr_chunks.R")
 
 ```
 
-```{r validation2, echo = FALSE, include = F}
+```{r variant counts, echo = FALSE, include = F}
 ```
-# Peptide binding predicted vs measured
+The distribution of the number of variants in each variant type defined by bcftools is shown. Your team's value is shown by a red traingle.
 
-Shown below is the comparison of predicted and measured binding values for your team's peptides.
-
-For a given patient, the absence of a plot implies none of your teams predicted neoepitopes for that patient were validated.
-
-## Patient 1
+# Patient 1
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("1", scatterplot_df)
+text <- make_variant_boxplot("1", variant_count_df)
 ```
 `r text`
 
-## Patient 2
+# Patient 2
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("2", scatterplot_df)
+text <- make_variant_boxplot("2", variant_count_df)
 ```
 `r text`
 
-## Patient 3
+# Patient 3
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("3", scatterplot_df)
+text <- make_variant_boxplot("3", variant_count_df)
 ```
 `r text`
 
-## Patient 4
+# Patient 4
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("4", scatterplot_df)
+text <- make_variant_boxplot("4", variant_count_df)
 ```
 `r text`

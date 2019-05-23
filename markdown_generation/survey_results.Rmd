@@ -1,0 +1,70 @@
+${toc}
+
+```{r setup, echo = FALSE, include = F}
+library(knitr)
+library(yaml)
+library(tidyverse)
+library(magrittr)
+library(synapser)
+
+synLogin()
+
+config <- read_yaml("config.yaml")
+CURRENT_TEAM <- config$team
+
+source("markdown_functions.R")
+source("plot_functions.R")
+source("query_functions.R")
+
+knitr::read_chunk("knitr_chunks.R")
+
+```
+
+```{r survey results, echo = FALSE, include = F}
+```
+Using data from the TESLA Methods Survey, we calculated the fraction of responding teams that include a given step in their workflow (x axis). Questions your team answered true to are outlined in red.
+
+
+# Exome-seq data
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_survey_barchart("Exome-seq data", survey_df)
+```
+`r text`
+
+# HLA status
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_survey_barchart("HLA status", survey_df)
+```
+`r text`
+
+# Peptide filtering and ranking
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_survey_barchart("Peptide filtering and ranking", survey_df)
+```
+`r text`
+
+# Peptides
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_survey_barchart("Peptides", survey_df)
+```
+`r text`
+
+# RNA-seq data
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_survey_barchart("RNA-seq data", survey_df)
+```
+`r text`
+
+# Variant calling
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_survey_barchart("Variant calling", survey_df)
+```
+`r text`
+
+# Variant filtering
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_survey_barchart("Variant filtering", survey_df)
+```
+`r text`
+
+

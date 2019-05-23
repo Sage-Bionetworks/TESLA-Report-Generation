@@ -9,9 +9,9 @@ library(magrittr)
 library(plotly)
 
 config <- read_yaml("config.yaml")
-RND  <- "1"
+RND  <- "2"
 CURRENT_TEAM <- config$team
-SRC <- "fastq"
+SRC <- "vcf"
 
 source("markdown_functions.R")
 source("plot_functions.R")
@@ -42,48 +42,6 @@ make_validated_submissions_boxplot(TCR_FLOW_I_df, "MEAN_RANK", "Mean rank of tes
 ## Validation rate of tested peptides
 ```{r plot3, echo = F, warning=F, fig.width = 20, fig.height = 10}
 make_validated_submissions_boxplot(TCR_FLOW_I_df, "RATE", "Validation rate of tested peptides")
-```
-
-# TCR binding by flow II (NKI)
-
-This assay is a cytometry-tetramer tetramer screen. See more details at Consortium Validation Page. Data is shown for top 20 ranked peptides only.
-
-## Number of tested peptides
-```{r plot4, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_FLOW_II_df, "COUNT", "Number of tested peptides")
-```
-
-
-## Mean rank of tested peptides
-```{r plot5, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_FLOW_II_df, "MEAN_RANK", "Mean rank of tested peptides")
-```
-
-
-## Validation rate of tested peptides
-```{r plot6, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_FLOW_II_df, "RATE", "Validation rate of tested peptides")
-```
-
-# TCR binding by microfluidics (Caltech & Institute of Systems Biology)
-
-This assay is a nanoparticle-based separation assay. See more details at Consortium Validation Page. Data is shown for top 20 ranked peptides only.
-
-## Number of tested peptides
-```{r plot7, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_NANOPARTICLE_df, "COUNT", "Number of tested peptides")
-```
-
-
-## Mean rank of tested peptides
-```{r plot8, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_NANOPARTICLE_df, "MEAN_RANK", "Mean rank of tested peptides")
-```
-
-
-## Validation rate of tested peptides
-```{r plot9, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_NANOPARTICLE_df, "RATE", "Validation rate of tested peptides")
 ```
 
 # T cell reactivity screen (Mt. Sinai)

@@ -8,7 +8,7 @@ library(bigrquery)
 library(magrittr)
 
 config <- read_yaml("config.yaml")
-round  <- "1"
+round  <- "2"
 src <- "fastq"
 CURRENT_TEAM <- config$team
 
@@ -28,26 +28,20 @@ Shown below is the comparison of predicted and measured binding values for your 
 
 For a given patient, the absence of a plot implies none of your teams predicted neoepitopes for that patient were validated.
 
-## Patient 1
+## Patient 10
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("1", scatterplot_df)
+text <- make_scatterplot("10", scatterplot_df)
 ```
 `r text`
 
-## Patient 2
+## Patient 12
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("2", scatterplot_df)
+text <- make_scatterplot("12", scatterplot_df)
 ```
 `r text`
 
-## Patient 3
+## Patient 16
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("3", scatterplot_df)
-```
-`r text`
-
-## Patient 4
-```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("4", scatterplot_df)
+text <- make_scatterplot("16", scatterplot_df)
 ```
 `r text`

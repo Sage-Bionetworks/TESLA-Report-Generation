@@ -90,34 +90,40 @@ make_validation_dotplot_obj <- function(df, lines_vector){
 }
 
 make_validation_scatterplot <- function(df){
-    title <- make_validation_dotplot_title(df)
+    title <- make_validation_scatterplot_title(df)
     plot_object <- make_validation_scatterplot_obj(df, title)
     print(plot_object)
 }
 
-make_validation_dotplot_title <- function(df){
-    spearman_cor <- 
-        cor(
-            df$LOG_PREDICTED_BINDING, 
-            df$LOG_MEASURED_BINDING, 
-            method = "spearman") %>% 
-        round(4) %>% 
-        as.character
-    
-    spearman_p <- 
-        cor.test(
-            df$LOG_PREDICTED_BINDING, 
-            df$LOG_MEASURED_BINDING, 
-            method = "spearman") %>% 
-        use_series(p.value) %>% 
-        round(4) %>% 
-        as.character
-    
-    title <- str_c(
-        "Spearman correlation = ",
-        spearman_cor, 
-        ", pvalue = ",
-        spearman_p)
+make_validation_scatterplot_title <- function(df){
+    if(nrow(df) == 1){
+        title <- ""
+    } else{
+        spearman_cor <- 
+            cor(
+                df$LOG_PREDICTED_BINDING, 
+                df$LOG_MEASURED_BINDING, 
+                method = "spearman") %>% 
+            round(4) %>% 
+            as.character
+        
+        spearman_p <- 
+            cor.test(
+                df$LOG_PREDICTED_BINDING, 
+                df$LOG_MEASURED_BINDING, 
+                method = "spearman") %>% 
+            use_series(p.value) %>% 
+            round(4) %>% 
+            as.character
+        
+        title <- str_c(
+            "Spearman correlation = ",
+            spearman_cor, 
+            ", pvalue = ",
+            spearman_p)
+    }
+    return(title)
+
 }
 
 make_validation_scatterplot_obj <- function(df, title){
@@ -140,9 +146,9 @@ make_validation_scatterplot_obj <- function(df, title){
 }
 
 
-make_validated_submissions_boxplot <- function(df, ylab){
+make_validated_submissions_boxplot <- function(df, column, ylab){
     plot <- df %>% 
-        ggplot(aes_string(x = "PATIENT_ID", y = "STAT")) +
+        ggplot(aes_string(x = "PATIENT_ID", y = column)) +
         geom_boxplot(color = "black", fill = "white", outlier.shape = NA) +
         geom_jitter(
             aes(color = team_status, shape = team_status), 
@@ -156,3 +162,60 @@ make_validated_submissions_boxplot <- function(df, ylab){
         theme(plot.title = element_text(hjust = 0.5))
     print(plot)
 }
+
+make_variant_boxplot_obj <- function(df){
+    plot <- df %>% 
+        ggplot(aes(x = VARIANT, y = LOG_N)) +
+        geom_boxplot(color = "black", fill = "white", outlier.shape = NA) +
+        geom_jitter(
+            aes(color = team_status, shape = team_status), 
+            size = 4,
+            height = 0) + 
+        labs(shape = "", color = "") +
+        scale_color_manual(values = c("black", "red")) +
+        ylab("Log 10(Number of variants + 1)") +
+        xlab("Variant type") +
+        theme_bw() +
+        theme(plot.title = element_text(hjust = 0.5))
+    print(plot)
+}
+
+make_variant_histogram_obj <- function(df){
+    point_x <- get_variant_overlap_point_value(df)
+    plot <- df %>% 
+        ggplot(aes(x = value)) +
+        geom_histogram(binwidth = .05, fill = "white", color = "black") +
+        geom_point(x = point_x, y = 0, color = "red", size = 4) +
+        xlim(0.5, 1.05) +
+        ylab("Number of teams") +
+        xlab("Median per-team overlap") +
+        theme_bw() +
+        theme(plot.title = element_text(hjust = 0.5))
+    print(plot)
+}
+
+get_variant_overlap_point_value <- function(df){
+    df %>% 
+        dplyr::filter(team_status == "Your team") %>% 
+        magrittr::extract2("value")
+}
+
+make_survey_barchart_obj <- function(df){
+    plot <- df %>% 
+        ggplot() +
+        geom_bar(
+            stat = "identity", 
+            aes(x = QUESTION_PART_2, y = fraction, color = ANSWER),
+            fill = "white") +
+        scale_color_manual(values=c("black", "red")) +
+        ylab("Fraction of teams answering yes") +
+        xlab("Survey question") +
+        theme_bw() +
+        theme(
+            axis.text.x = element_text(angle = 90, hjust = 1),
+            text = element_text(size = 20)) +
+        coord_flip() 
+    print(plot)
+}
+
+
