@@ -23,21 +23,15 @@ make_submission_dbi <- function(rounds = c("1", "2", "x")){
 make_prediction_dbi <- function(sources = c("fastq", "vcf")){
     prediction_dbi <- BQ_DBI %>% 
         dplyr::tbl("Predictions") %>% 
-        dplyr::filter(SOURCE %in% sources) 
-}
-
-make_binding_prediction_dbi <- function(sources = c("fastq", "vcf")){
-    prediction_dbi <- 
-        make_prediction_dbi(sources) %>% 
-        dplyr::filter(!is.na(RANK)) %>% 
-        dplyr::filter(!is.na(HLA_ALT_BINDING))
+        dplyr::filter(SOURCE %in% sources) %>% 
+        dplyr::filter(!is.na(RANK))
 }
 
 # submission ----
 
 make_submission_plot_prediction_dbi <- function(round, src){
     submission_dbi <- make_submission_dbi(round)
-    prediction_dbi <- make_binding_prediction_dbi(src)
+    prediction_dbi <- make_prediction_dbi(src) 
     
     dbi <- 
         dplyr::inner_join(prediction_dbi, submission_dbi) %>% 
@@ -95,9 +89,10 @@ make_overlap_df <- function(prediction_dbi, max_rank = 20){
 # binding validation ----
 
 make_combined_binding_prediction_dbi <- function(round, src){
-    submission_dbi <- make_binding_submission_dbi(round)
-    prediction_dbi <- make_binding_prediction_dbi(src)
-    
+    submission_dbi <- make_submission_dbi(round)
+    prediction_dbi <- make_prediction_dbi(src) %>% 
+        dplyr::filter(!is.na(HLA_ALT_BINDING))
+        
     combined_dbi <-
         dplyr::inner_join(prediction_dbi, submission_dbi) %>% 
         dplyr::mutate(LOG_BINDING = log10(HLA_ALT_BINDING + 1)) %>% 
@@ -107,21 +102,6 @@ make_combined_binding_prediction_dbi <- function(round, src){
             ALT_EPI_SEQ,
             TEAM,
             LOG_BINDING)
-}
-
-make_binding_submission_dbi <- function(round){
-    submission_dbi <- BQ_DBI %>% 
-        dplyr::tbl("Submissions") %>% 
-        dplyr::filter(ROUND == round) %>% 
-        dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
-}
-
-make_binding_prediction_dbi <- function(src){
-    prediction_dbi <- BQ_DBI %>% 
-        dplyr::tbl("Predictions") %>% 
-        dplyr::filter(!is.na(RANK)) %>% 
-        dplyr::filter(!is.na(HLA_ALT_BINDING)) %>% 
-        dplyr::filter(SOURCE == src)
 }
 
 make_binding_validation_dbi <- function(){
