@@ -2,22 +2,45 @@
 
 ## These functions query Bigquery tables and either return a DBI::dbConnect connection, or a dplyr::tibble df
 
+BQ_PROJECT <- "neoepitopes"
+BQ_DATASET <- "Version_3"
+
+BQ_DBI     <- DBI::dbConnect(
+    bigquery(), 
+    project = BQ_PROJECT,
+    dataset = BQ_DATASET)
+
+# general ----
+
+
+make_submission_dbi <- function(rounds = c("1", "2", "x")){
+    submission_dbi <- BQ_DBI %>% 
+        dplyr::tbl("Submissions") %>% 
+        dplyr::filter(ROUND %in% rounds) %>% 
+        dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
+}
+
+make_prediction_dbi <- function(sources = c("fastq", "vcf")){
+    prediction_dbi <- BQ_DBI %>% 
+        dplyr::tbl("Predictions") %>% 
+        dplyr::filter(SOURCE %in% sources) 
+}
+
+make_binding_prediction_dbi <- function(sources = c("fastq", "vcf")){
+    prediction_dbi <- 
+        make_prediction_dbi(sources) %>% 
+        dplyr::filter(!is.na(RANK)) %>% 
+        dplyr::filter(!is.na(HLA_ALT_BINDING))
+}
+
 # submission ----
 
 make_submission_plot_prediction_dbi <- function(round, src){
-    submission_dbi <- 
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
-        dplyr::tbl("Submissions") %>% 
-        dplyr::filter(ROUND == round) %>% 
-        dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
+    submission_dbi <- make_submission_dbi(round)
+    prediction_dbi <- make_binding_prediction_dbi(src)
     
-    prediction_dbi <-
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
-        dplyr::tbl("Predictions") %>% 
-        dplyr::filter(!is.na(RANK)) %>% 
-        dplyr::filter(!is.na(HLA_ALT_BINDING)) %>% 
-        dplyr::filter(SOURCE == src) %>% 
-        dplyr::inner_join(submission_dbi) %>% 
+    dbi <- 
+        dplyr::inner_join(prediction_dbi, submission_dbi) %>% 
         dplyr::select(
             PATIENT_ID, 
             HLA_ALLELE, 
@@ -28,6 +51,7 @@ make_submission_plot_prediction_dbi <- function(round, src){
             PEP_LEN,
             RANK) 
 }
+
 
 make_log_peptides_df <- function(prediction_dbi, team){
     prediction_dbi %>% 
@@ -86,16 +110,14 @@ make_combined_binding_prediction_dbi <- function(round, src){
 }
 
 make_binding_submission_dbi <- function(round){
-    submission_dbi <- 
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+    submission_dbi <- BQ_DBI %>% 
         dplyr::tbl("Submissions") %>% 
         dplyr::filter(ROUND == round) %>% 
         dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
 }
 
 make_binding_prediction_dbi <- function(src){
-    prediction_dbi <-
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+    prediction_dbi <- BQ_DBI %>% 
         dplyr::tbl("Predictions") %>% 
         dplyr::filter(!is.na(RANK)) %>% 
         dplyr::filter(!is.na(HLA_ALT_BINDING)) %>% 
@@ -103,8 +125,7 @@ make_binding_prediction_dbi <- function(src){
 }
 
 make_binding_validation_dbi <- function(){
-    validation_dbi <- 
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>%
+    validation_dbi <- BQ_DBI %>%
         dplyr::tbl("Validated_Bindings") %>%
         dplyr::filter(!is.na(LJI_BINDING)) %>%
         dplyr::mutate(LOG_BINDING = log10(LJI_BINDING + 1))  %>%
@@ -113,17 +134,10 @@ make_binding_validation_dbi <- function(){
 
 # validation 1
 
-make_binding_dotplot_df <- function(round, source, team){
-    prediction_dbi <- make_combined_binding_prediction_dbi(round, source) 
+make_binding_dotplot_df <- function(round, src, team){
+    prediction_dbi <- make_combined_binding_prediction_dbi(round, src) 
     validation_dbi <- make_binding_validation_dbi() 
-    
-    pmhc_dbi <-  prediction_dbi %>% 
-        dplyr::filter(TEAM == team) %>% 
-        dplyr::inner_join(
-            validation_dbi,
-            by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ")) %>% 
-        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ) %>% 
-        dplyr::distinct()
+    pmhc_dbi       <- make_pmhc_dbi(prediction_dbi, validation_dbi, team)
     
     prediction_df <- prediction_dbi %>% 
         dplyr::inner_join(pmhc_dbi) %>% 
@@ -142,10 +156,21 @@ make_binding_dotplot_df <- function(round, source, team){
         relevel_df
 }
 
+make_pmhc_dbi <- function(prediction_dbi, validation_dbi, team){
+    pmhc_dbi <-  prediction_dbi %>% 
+        dplyr::filter(TEAM == team) %>% 
+        dplyr::inner_join(
+            validation_dbi,
+            by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ")) %>% 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ) %>% 
+        dplyr::distinct()
+}
+
+
 # validation 2
 
-make_binding_scatterplot_df <- function(round, source, team){
-    prediction_dbi <- make_combined_binding_prediction_dbi(round, source) %>% 
+make_binding_scatterplot_df <- function(round, src, team){
+    prediction_dbi <- make_combined_binding_prediction_dbi(round, src) %>% 
         dplyr::filter(TEAM == team) %>% 
         dplyr::select(-TEAM) %>% 
         dplyr::rename(LOG_PREDICTED_BINDING = LOG_BINDING)
@@ -160,6 +185,10 @@ make_binding_scatterplot_df <- function(round, source, team){
             by = c("HLA_ALLELE", "ALT_EPI_SEQ", "PATIENT_ID")) %>% 
         tibble::as_tibble()
 }
+
+# validation 3 ----
+
+
 
 
 
@@ -213,13 +242,11 @@ make_variant_overlap_df <- function(round, team){
 }
 
 make_survey_df <- function(team){
-    question_dbi <- 
-        DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+    question_dbi <- BQ_DBI %>% 
         dplyr::tbl("Survey_Questions") %>% 
         dplyr::select(-QUESTION_PART_1)
     
-    survey_dbi <-
-        DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+    survey_dbi <- BQ_DBI %>% 
         dplyr::tbl("Survey_Answers") %>% 
         dplyr::inner_join(question_dbi)
     

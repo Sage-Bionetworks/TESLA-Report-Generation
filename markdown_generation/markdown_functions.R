@@ -78,22 +78,22 @@ make_submission_plot_dfs <- function(round, source, team){
     return(lst)
 }
 
-make_validation_dfs <- function(round, source, team){
-    submission_dbi <- 
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
-        dplyr::tbl("Submissions") %>% 
-        dplyr::filter(ROUND == round) %>% 
-        dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
+make_validation_dfs <- function(round, src, team){
+    submission_dbi <- make_submission_dbi(round)
+    # prediction_dbi <- make_prediction_dbi2(src) 
+    # combined_dbi <- 
+    #     dplyr::inner_join(prediction_dbi, submission_dbi) %>% 
+    #     dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK)
     
-    prediction_dbi <-
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
-        dplyr::tbl("Predictions") %>% 
-        dplyr::filter(RANK <= 20) %>% 
-        dplyr::filter(SOURCE == source) %>% 
-        dplyr::inner_join(submission_dbi) %>% 
+    combined_dbi <-
+        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>%
+        dplyr::tbl("Predictions") %>%
+        dplyr::filter(RANK <= 20) %>%
+        dplyr::filter(SOURCE == src) %>%
+        dplyr::inner_join(submission_dbi) %>%
         dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK)
     
-    prediction_dbi2 <- prediction_dbi %>% 
+    prediction_dbi2 <- combined_dbi %>% 
         dplyr::select(-HLA_ALLELE)
     
     validation_bindings_dbi <- 
@@ -104,7 +104,7 @@ make_validation_dfs <- function(round, source, team){
     TCR_NANOPARTICLE_df <- validation_bindings_dbi %>% 
         dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE) %>% 
         dplyr::filter(!is.na(TCR_NANOPARTICLE)) %>% 
-        dplyr::inner_join(prediction_dbi) %>% 
+        dplyr::inner_join(combined_dbi) %>% 
         dplyr::mutate(ASSAY_NUM = ifelse(TCR_NANOPARTICLE == "+", 1, 0)) %>% 
         dplyr::group_by(TEAM, PATIENT_ID) %>% 
         dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
@@ -114,7 +114,7 @@ make_validation_dfs <- function(round, source, team){
     TCR_FLOW_I_df <- validation_bindings_dbi %>% 
         dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_FLOW_I) %>% 
         dplyr::filter(!is.na(TCR_FLOW_I)) %>% 
-        dplyr::inner_join(prediction_dbi) %>% 
+        dplyr::inner_join(combined_dbi) %>% 
         dplyr::mutate(ASSAY_NUM = ifelse(TCR_FLOW_I == "+", 1, 0)) %>% 
         dplyr::group_by(TEAM, PATIENT_ID) %>% 
         dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
@@ -124,7 +124,7 @@ make_validation_dfs <- function(round, source, team){
     TCR_FLOW_II_df <- validation_bindings_dbi %>% 
         dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_FLOW_II) %>% 
         dplyr::filter(!is.na(TCR_FLOW_II)) %>% 
-        dplyr::inner_join(prediction_dbi) %>% 
+        dplyr::inner_join(combined_dbi) %>% 
         dplyr::mutate(ASSAY_NUM = ifelse(TCR_FLOW_II == "+", 1, 0)) %>% 
         dplyr::group_by(TEAM, PATIENT_ID) %>% 
         dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
