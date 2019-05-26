@@ -1,23 +1,11 @@
 ${toc}
 
-```{r setup, echo = FALSE, include = F}
+```{r echo = FALSE, include = F}
 library(knitr)
-library(yaml)
-library(tidyverse)
-library(bigrquery)
-library(magrittr)
-
-config <- read_yaml("config.yaml")
-round  <- "2"
-src <- "vcf"
-CURRENT_TEAM <- config$team
-
-source("markdown_functions.R")
-source("plot_functions.R")
-source("query_functions.R")
-
 knitr::read_chunk("knitr_chunks.R")
+```
 
+```{r setup, echo = FALSE, include = F}
 ```
 
 ```{r validation2, echo = FALSE, include = F}
@@ -28,20 +16,26 @@ Shown below is the comparison of predicted and measured binding values for your 
 
 For a given patient, the absence of a plot implies none of your teams predicted neoepitopes for that patient were validated.
 
-## Patient 10
+## Patient 1
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("10", scatterplot_df)
+text <- make_scatterplot("1", scatterplot_df)
 ```
 `r text`
 
-## Patient 12
+## Patient 2
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("12", scatterplot_df)
+text <- make_scatterplot("2", scatterplot_df)
 ```
 `r text`
 
-## Patient 16
+## Patient 3
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("16", scatterplot_df)
+text <- make_scatterplot("3", scatterplot_df)
+```
+`r text`
+
+## Patient 4
+```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
+text <- make_scatterplot("4", scatterplot_df)
 ```
 `r text`

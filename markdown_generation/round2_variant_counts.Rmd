@@ -1,24 +1,11 @@
 ${toc}
 
-```{r setup, echo = FALSE, include = F}
+```{r echo = FALSE, include = F}
 library(knitr)
-library(yaml)
-library(tidyverse)
-library(magrittr)
-library(synapser)
-
-synLogin()
-
-config <- read_yaml("config.yaml")
-patients <- c("10", "11", "12", "14", "15", "16")
-CURRENT_TEAM <- config$team
-
-source("markdown_functions.R")
-source("plot_functions.R")
-source("query_functions.R")
-
 knitr::read_chunk("knitr_chunks.R")
+```
 
+```{r setup, echo = FALSE, include = F}
 ```
 
 ```{r variant counts, echo = FALSE, include = F}

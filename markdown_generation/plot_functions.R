@@ -74,7 +74,9 @@ make_dotplot_lines_vector <- function(df){
 
 make_validation_dotplot_obj <- function(df, lines_vector){
     plot <- df %>% 
-        ggplot(aes(x = ALT_EPI_SEQ,  y = LOG_BINDING)) +
+        ggplot(aes(
+            x = interaction(ALT_EPI_SEQ, PATIENT_ID, sep = ";Pat:"),  
+            y = LOG_BINDING)) +
         geom_jitter(aes(color = TEAM, size = TEAM, alpha = TEAM), width = .4) +
         scale_alpha_manual(values = c(0.7, 1, 0.7)) +
         scale_size_manual(values = c(4, 2, 4)) +
@@ -85,7 +87,7 @@ make_validation_dotplot_obj <- function(df, lines_vector){
             axis.text.x = element_text(angle = 90, hjust = 1), 
             text = element_text(size=20)) +
         ylab("Log 10 (Binding + 1)") +
-        xlab("Tested Epitope") +
+        xlab("Tested Epitope; Patient") +
         geom_vline(xintercept = lines_vector)
 }
 

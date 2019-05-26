@@ -1,13 +1,3 @@
-relevel_df <- function(df){
-    new_lvs <- df %>% 
-        filter(TEAM == "Measured") %>% 
-        arrange(LOG_BINDING) %>% 
-        use_series(ALT_EPI_SEQ) %>% 
-        unique()
-    df$ALT_EPI_SEQ = factor(df$ALT_EPI_SEQ, levels = new_lvs, ordered = TRUE)
-    return(df)
-}
-
 code_df_by_team <- function(plot_data_df, team){
     mutate(plot_data_df, 
            team_status = ifelse(
@@ -18,6 +8,68 @@ code_df_by_team <- function(plot_data_df, team){
                    "Your team", 
                    "Other teams")))
 }
+
+# df <- submission_dfs[["log_peptides_df"]] %>% 
+#     bind_rows(tibble(
+#         TEAM = NA
+#     ))
+# code_df_by_team2 <- function(df, team){
+#     join_df <- dplyr::tibble(
+#         "x" = c(team, )
+#     )
+#     result <- df %>% 
+#         
+#     
+#     
+#     
+#     mutate(df, 
+#            team_status = ifelse(
+#                is.na(TEAM), 
+#                "No team", 
+#                ifelse(
+#                    TEAM == team, 
+#                    "Your team", 
+#                    "Other teams")))
+# }
+
+
+
+relevel_df <- function(df){
+    new_lvs <- df %>% 
+        filter(TEAM == "Measured") %>% 
+        arrange(LOG_BINDING) %>% 
+        use_series(ALT_EPI_SEQ) %>% 
+        unique()
+    df$ALT_EPI_SEQ = factor(df$ALT_EPI_SEQ, levels = new_lvs, ordered = TRUE)
+    return(df)
+}
+
+
+
+
+
+
+
+make_submission_plot_dfs <- function(round, src = "fastq"){
+    prediction_dbi <- make_submission_plot_prediction_dbi(round, src)
+    
+    log_peptides_df <- make_log_peptides_df(prediction_dbi)
+    peptide_length_df <- make_peptide_length_df(prediction_dbi)
+    agretopicity_df <- make_agretopicity_df(prediction_dbi)
+    overlap_df <- make_overlap_df(prediction_dbi)
+    
+    lst <- list(
+        "log_peptides_df" = log_peptides_df,
+        "peptide_length_df" = peptide_length_df,
+        "agretopicity_df" = agretopicity_df,
+        "overlap_df" = overlap_df
+    )
+    return(lst)
+}
+
+
+
+
 
 
 

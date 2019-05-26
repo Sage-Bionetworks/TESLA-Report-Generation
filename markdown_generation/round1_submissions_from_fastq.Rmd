@@ -1,23 +1,11 @@
 ${toc}
 
-```{r setup, echo = FALSE, include = F}
+```{r echo = FALSE, include = F}
 library(knitr)
-library(yaml)
-library(tidyverse)
-library(bigrquery)
-library(magrittr)
-library(plotly)
-
-config <- read_yaml("config.yaml")
-round  <- "1"
-src    <- "fastq"
-CURRENT_TEAM <- config$team
-
-source("markdown_functions.R")
-source("plot_functions.R")
-source("query_functions.R")
-
 knitr::read_chunk("knitr_chunks.R")
+```
+
+```{r setup, echo = FALSE, include = F}
 ```
 
 ```{r submissions, echo = FALSE, include = F}

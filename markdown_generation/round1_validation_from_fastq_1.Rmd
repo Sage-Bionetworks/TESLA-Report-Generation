@@ -1,24 +1,11 @@
 ${toc}
 
-```{r setup, echo = FALSE, include = F}
+```{r echo = FALSE, include = F}
 library(knitr)
-library(yaml)
-library(tidyverse)
-library(bigrquery)
-library(magrittr)
-library(plotly)
-
-config <- read_yaml("config.yaml")
-round  <- "2"
-src <- "fastq"
-CURRENT_TEAM <- config$team
-
-source("markdown_functions.R")
-source("plot_functions.R")
-source("query_functions.R")
-
 knitr::read_chunk("knitr_chunks.R")
+```
 
+```{r setup, echo = FALSE, include = F}
 ```
 
 ```{r validation1, echo = FALSE, include = F}
@@ -48,18 +35,6 @@ text <- make_dotplot("A*03:01", dotplot_df)
 ```
 `r text`
 
-## A*11:01
-```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("A*11:01", dotplot_df)
-```
-`r text`
-
-## A*24:02
-```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("A*24:02", dotplot_df)
-```
-`r text`
-
 ## A*32:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
 text <- make_dotplot("A*32:01", dotplot_df)
@@ -84,12 +59,6 @@ text <- make_dotplot("B*08:01", dotplot_df)
 ```
 `r text`
 
-## B*27:05
-```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("B*44:02", dotplot_df)
-```
-`r text`
-
 ## B*44:02
 ```{r echo = F, fig.width = 20, fig.height = 10}
 text <- make_dotplot("B*44:02", dotplot_df)
@@ -105,5 +74,17 @@ text <- make_dotplot("B*51:01", dotplot_df)
 ## B*57:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
 text <- make_dotplot("B*57:01", dotplot_df)
+```
+`r text`
+
+## C*03:03
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("C*03:03", dotplot_df)
+```
+`r text`
+
+## C*05:01
+```{r echo = F, fig.width = 20, fig.height = 10}
+text <- make_dotplot("C*05:01", dotplot_df)
 ```
 `r text`
