@@ -168,7 +168,41 @@ make_binding_scatterplot_df <- function(round, src, team){
 
 # validation 3 ----
 
-
+make_validation_df <- function(round, src, team){
+    submission_dbi <- make_submission_dbi(round)
+    
+    combined_df <-
+        make_prediction_dbi(src) %>% 
+        dplyr::filter(RANK <= 20) %>%
+        dplyr::inner_join(submission_dbi) %>%
+        dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK) %>% 
+        as_tibble()
+    
+    validated_bindings_df <- BQ_DBI %>% 
+        dplyr::tbl("Validated_Bindings") %>% 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+        dplyr::as_tibble() %>% 
+        tidyr::gather(key = "ASSAY", value = "RESULT", TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+        tidyr::drop_na() %>% 
+        dplyr::inner_join(combined_df, by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ"))
+    
+    validated_epitopes_df <- BQ_DBI %>% 
+        dplyr::tbl("Validated_Epitopes") %>% 
+        dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
+        dplyr::as_tibble() %>% 
+        tidyr::gather(key = "ASSAY", value = "RESULT", TCELL_REACTIVITY) %>% 
+        tidyr::drop_na() %>% 
+        dplyr::inner_join(combined_df, by = c("PATIENT_ID", "ALT_EPI_SEQ"))
+    
+    df <- 
+        dplyr::bind_rows(validated_epitopes_df, validated_bindings_df) %>% 
+        dplyr::select(TEAM, PATIENT_ID, ASSAY, RESULT, RANK) %>% 
+        dplyr::distinct() %>% 
+        dplyr::mutate(ASSAY_NUM = ifelse(RESULT == "+", 1, 0)) %>%
+        dplyr::group_by(TEAM, PATIENT_ID, ASSAY) %>%
+        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>%
+        code_df_by_team(team)
+}
 
 
 
