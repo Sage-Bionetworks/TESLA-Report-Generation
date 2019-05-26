@@ -44,29 +44,113 @@ relevel_df <- function(df){
     return(df)
 }
 
-
-
-
-
-
-
-make_submission_plot_dfs <- function(round, src = "fastq"){
-    prediction_dbi <- make_submission_plot_prediction_dbi(round, src)
+make_submission_plot_dfs <- function(round, source, team){
+    prediction_dbi <- make_submission_plot_prediction_dbi(round, source)
     
-    log_peptides_df <- make_log_peptides_df(prediction_dbi)
-    peptide_length_df <- make_peptide_length_df(prediction_dbi)
-    agretopicity_df <- make_agretopicity_df(prediction_dbi)
+    log_peptides_df <- make_log_peptides_df(prediction_dbi, team)
+    peptide_length_df <- make_peptide_length_df(prediction_dbi, team)
+    agretopicity_df <- make_agretopicity_df(prediction_dbi, team)
     overlap_df <- make_overlap_df(prediction_dbi)
+    
+    patients <- overlap_df %>%
+        magrittr::use_series(PATIENT_ID) %>%
+        unique %>% unique %>%
+        sort
+    
+    epitope_overlap_df <-
+        purrr::map(
+            patients,
+            create_p_common_matrix,
+            overlap_df) %>%
+        purrr::map(create_median_table) %>%
+        purrr::map2(patients, ~inset(.x, "patient", value = .y)) %>%
+        dplyr::bind_rows() %>%
+        magrittr::set_names(c("TEAM", "SCORE", "PATIENT_ID")) %>%
+        dplyr::mutate(PATIENT_ID = as.factor(PATIENT_ID)) %>%
+        code_df_by_team(team)
     
     lst <- list(
         "log_peptides_df" = log_peptides_df,
         "peptide_length_df" = peptide_length_df,
         "agretopicity_df" = agretopicity_df,
-        "overlap_df" = overlap_df
+        "epitope_overlap_df" = epitope_overlap_df
     )
     return(lst)
 }
 
+make_validation_dfs <- function(round, source, team){
+    submission_dbi <- 
+        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+        dplyr::tbl("Submissions") %>% 
+        dplyr::filter(ROUND == round) %>% 
+        dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
+    
+    prediction_dbi <-
+        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+        dplyr::tbl("Predictions") %>% 
+        dplyr::filter(RANK <= 20) %>% 
+        dplyr::filter(SOURCE == source) %>% 
+        dplyr::inner_join(submission_dbi) %>% 
+        dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK)
+    
+    prediction_dbi2 <- prediction_dbi %>% 
+        dplyr::select(-HLA_ALLELE)
+    
+    validation_bindings_dbi <- 
+        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+        dplyr::tbl("Validated_Bindings") %>% 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) 
+    
+    TCR_NANOPARTICLE_df <- validation_bindings_dbi %>% 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE) %>% 
+        dplyr::filter(!is.na(TCR_NANOPARTICLE)) %>% 
+        dplyr::inner_join(prediction_dbi) %>% 
+        dplyr::mutate(ASSAY_NUM = ifelse(TCR_NANOPARTICLE == "+", 1, 0)) %>% 
+        dplyr::group_by(TEAM, PATIENT_ID) %>% 
+        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
+        tibble::as_tibble() %>% 
+        code_df_by_team(team)
+    
+    TCR_FLOW_I_df <- validation_bindings_dbi %>% 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_FLOW_I) %>% 
+        dplyr::filter(!is.na(TCR_FLOW_I)) %>% 
+        dplyr::inner_join(prediction_dbi) %>% 
+        dplyr::mutate(ASSAY_NUM = ifelse(TCR_FLOW_I == "+", 1, 0)) %>% 
+        dplyr::group_by(TEAM, PATIENT_ID) %>% 
+        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
+        tibble::as_tibble() %>% 
+        code_df_by_team(team)
+    
+    TCR_FLOW_II_df <- validation_bindings_dbi %>% 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_FLOW_II) %>% 
+        dplyr::filter(!is.na(TCR_FLOW_II)) %>% 
+        dplyr::inner_join(prediction_dbi) %>% 
+        dplyr::mutate(ASSAY_NUM = ifelse(TCR_FLOW_II == "+", 1, 0)) %>% 
+        dplyr::group_by(TEAM, PATIENT_ID) %>% 
+        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
+        tibble::as_tibble() %>% 
+        code_df_by_team(team)
+    
+    TCELL_REACTIVITY_df <- 
+        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+        dplyr::tbl("Validated_Epitopes") %>% 
+        dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
+        dplyr::filter(!is.na( TCELL_REACTIVITY)) %>% 
+        dplyr::inner_join(prediction_dbi2) %>%
+        dplyr::mutate(ASSAY_NUM = ifelse(TCELL_REACTIVITY == "+", 1, 0)) %>% 
+        dplyr::group_by(TEAM, PATIENT_ID) %>% 
+        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
+        tibble::as_tibble() %>% 
+        code_df_by_team(team)
+    
+    lst <- list(
+        "TCR_NANOPARTICLE_df" = TCR_NANOPARTICLE_df,
+        "TCR_FLOW_I_df" =  TCR_FLOW_I_df,
+        "TCR_FLOW_II_df" =  TCR_FLOW_II_df,
+        "TCELL_REACTIVITY_df" = TCELL_REACTIVITY_df
+    )
+    return(lst)
+}
 
 
 
@@ -216,5 +300,5 @@ birdUnique=function(bird,patientDataset,type="records:"){
 getbird=function(x){as.vector(strsplit(x,split = "_")[[1]][1])}
 
 
-
+# these need to go to the appropriate files
 

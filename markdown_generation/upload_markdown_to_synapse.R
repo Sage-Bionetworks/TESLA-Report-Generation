@@ -1,47 +1,46 @@
+# library(argparse)
+# 
+# parser = ArgumentParser()
+# 
+# parser$add_argument(
+#     "--version",
+#     type = "character",
+#     default = "test")
+# 
+# parser$add_argument(
+#     "--markdown_types",
+#     type = "character",
+#     default = "all")
+# 
+# args = parser$parse_args()
+
+args = list("version" = "test", "markdown_types" = "all")
+
+
 library(synapser)
 library(tidyverse)
 library(magrittr)
 library(knit2synapse)
 library(bigrquery)
+library(yaml)
 
 synapser::synLogin()
 
 source("upload_markdown_functions.R")
 
-args <- commandArgs(trailingOnly=TRUE)
-version <- args[[1]]
+wiki_df <- readr::read_tsv("../markdown_generation/markdown_file_list.tsv")
 
-r1_markdown <- c(
-    "round1_submissions_from_fastq.Rmd",
-    "round1_validation1.Rmd", 
-    "round1_validation2.Rmd",  
-    "round1_validation3.Rmd",
-    "round1_variant_counts.Rmd", 
-    "round1_variant_overlap.Rmd"
-)
-
-r2_markdown <- c(
-    "round2_submissions_from_fastq.Rmd",
-    "round2_validation_from_fastq1.Rmd",
-    "round2_validation_from_fastq3.Rmd",  
-    "round2_validation_from_vcf2.Rmd", 
-    "round2_variant_counts.Rmd",
-    "round2_submissions_from_vcf.Rmd",
-    "round2_validation_from_fastq2.Rmd",  
-    "round2_validation_from_vcf1.Rmd",
-    "round2_validation_from_vcf3.Rmd",
-    "round2_variant_overlap.Rmd"
-)
-
-survey_markdown <- c(
-    "survey_results.Rmd"
-)
-
-if(version == "live") {
+if(args$version == "live") {
     id_column <- "Report_project_id"
 } 
-if(version == "test") {
+if(args$version == "test") {
     id_column <- "Test_report_project_id"
+}
+
+if(args$markdown_types == "all"){
+    markdown_types <- c("round1", "round2", "survey")
+} else {
+    markdown_types <- args$markdown_types
 }
 
 project_df <- "syn11612493" %>% 
@@ -85,27 +84,30 @@ survey_teams <-
 
 r1_df <- project_df %>% 
     filter(team %in% r1_teams) %>% 
-    merge(r1_markdown)
+    merge(wiki_df) %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::filter(type == "round1") 
 
 r2_df <- project_df %>% 
     filter(team %in% r2_teams) %>% 
-    merge(r2_markdown)
+    merge(wiki_df) %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::filter(type == "round2") 
 
 survey_df <- project_df %>% 
     filter(team %in% survey_teams) %>% 
-    merge(survey_markdown)
-
-
-param_dfs <- 
-    dplyr::bind_rows(r1_df, r2_df, survey_df) %>% 
+    merge(wiki_df) %>% 
     dplyr::as_tibble() %>% 
-    dplyr::rename(file = y) %>% 
-    dplyr::mutate(wikiName = stringr::str_remove_all(file, ".Rmd")) %>% 
-    dplyr::mutate(wikiName = stringr::str_replace_all(wikiName, "_", " ")) %>% 
-    dplyr::mutate(wikiName = stringr::str_to_title(wikiName)) %>% 
-    dplyr::group_split(team) 
+    dplyr::filter(type == "survey")
 
-purrr::map(param_dfs, knit_markdown_by_team)
+
+param_df <- 
+    dplyr::bind_rows(r1_df, r2_df, survey_df) %>% 
+    dplyr::filter(type %in% markdown_types) %>% 
+    dplyr::select(-type) %>%
+    tidyr::nest(-c(team, round, source), .key = df) 
+
+purrr::pmap(param_df, knit_markdown_by_group)
                      
 
 

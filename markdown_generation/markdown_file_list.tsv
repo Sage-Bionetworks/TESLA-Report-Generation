@@ -1,18 +1,18 @@
-file	type	wikiName
-round1_submissions_from_fastq.Rmd	round1	Round1 Submissions From Fastq
-round1_validation_from_fastq_1.Rmd	round1	Round1 Validation From Fastq 1
-round1_validation_from_fastq_2.Rmd	round1	Round1 Validation From Fastq 2
-round1_validation_from_fastq_3.Rmd	round1	Round1 Validation From Fastq 3
-round1_variant_counts.Rmd	round1	Round1 Variant Counts
-round1_variant_overlap.Rmd	round1	Round1 Variant Overlap
-round2_submissions_from_fastq.Rmd	round2	Round2 Submissions From Fastq
-round2_submissions_from_vcf.Rmd	round2	Round2 Submissions From Vcf
-round2_validation_from_fastq_1.Rmd	round2	Round2 Validation From Fastq 1
-round2_validation_from_fastq_2.Rmd	round2	Round2 Validation From Fastq 2
-round2_validation_from_fastq_3.Rmd	round2	Round2 Validation From Fastq 3
-round2_validation_from_vcf_1.Rmd	round2	Round2 Validation From Vcf 1
-round2_validation_from_vcf_2.Rmd	round2	Round2 Validation From Vcf 2
-round2_validation_from_vcf_3.Rmd	round2	Round2 Validation From Vcf 3
-round2_variant_counts.Rmd	round2	Round2 Variant Counts
-round2_variant_overlap.Rmd	round2	Round2 Variant Overlap
-survey_results.Rmd	survey	Survey Results
+file	type	wikiName	source	round
+round1_submissions_from_fastq.Rmd	round1	Round1 Submissions From Fastq	fastq	1
+round1_validation_from_fastq_1.Rmd	round1	Round1 Validation From Fastq 1	fastq	1
+round1_validation_from_fastq_2.Rmd	round1	Round1 Validation From Fastq 2	fastq	1
+round1_validation_from_fastq_3.Rmd	round1	Round1 Validation From Fastq 3	fastq	1
+round1_variant_counts.Rmd	round1	Round1 Variant Counts	none	1
+round1_variant_overlap.Rmd	round1	Round1 Variant Overlap	none	1
+round2_submissions_from_fastq.Rmd	round2	Round2 Submissions From Fastq	fastq	2
+round2_submissions_from_vcf.Rmd	round2	Round2 Submissions From Vcf	vcf	2
+round2_validation_from_fastq_1.Rmd	round2	Round2 Validation From Fastq 1	fastq	2
+round2_validation_from_fastq_2.Rmd	round2	Round2 Validation From Fastq 2	fastq	2
+round2_validation_from_fastq_3.Rmd	round2	Round2 Validation From Fastq 3	fastq	2
+round2_validation_from_vcf_1.Rmd	round2	Round2 Validation From Vcf 1	vcf	2
+round2_validation_from_vcf_2.Rmd	round2	Round2 Validation From Vcf 2	vcf	2
+round2_validation_from_vcf_3.Rmd	round2	Round2 Validation From Vcf 3	vcf	2
+round2_variant_counts.Rmd	round2	Round2 Variant Counts	none	2
+round2_variant_overlap.Rmd	round2	Round2 Variant Overlap	none	2
+survey_results.Rmd	survey	Survey Results	none	none

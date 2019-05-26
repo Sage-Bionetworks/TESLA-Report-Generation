@@ -29,30 +29,33 @@ make_submission_plot_prediction_dbi <- function(round, src){
             RANK) 
 }
 
-make_log_peptides_df <- function(prediction_dbi){
+make_log_peptides_df <- function(prediction_dbi, team){
     prediction_dbi %>% 
         dplyr::group_by(TEAM, PATIENT_ID) %>% 
         dplyr::summarise(COUNT = n()) %>% 
         dplyr::mutate(LOG_COUNT = log10(COUNT)) %>% 
         dplyr::select(TEAM, PATIENT_ID, LOG_COUNT) %>% 
-        dplyr::as_tibble()
+        dplyr::as_tibble() %>% 
+        code_df_by_team(team)
 }
 
-make_peptide_length_df <- function(prediction_dbi, max_rank = 20){
+make_peptide_length_df <- function(prediction_dbi, team, max_rank = 20){
     prediction_dbi %>% 
         dplyr::filter(RANK <= max_rank) %>% 
         dplyr::select(TEAM, PEP_LEN) %>% 
-        dplyr::as_tibble()
+        dplyr::as_tibble() %>% 
+        code_df_by_team(team)
 }
 
-make_agretopicity_df <- function(prediction_dbi, max_rank = 20){
+make_agretopicity_df <- function(prediction_dbi, team, max_rank = 20){
     prediction_dbi %>% 
         dplyr::filter(RANK <= max_rank) %>% 
         dplyr::filter(!is.na(HLA_ALT_BINDING)) %>% 
         dplyr::filter(!is.na(HLA_REF_BINDING)) %>% 
         dplyr::mutate(LOG_AGRETOPICITY = log10(HLA_ALT_BINDING /HLA_REF_BINDING)) %>% 
         dplyr::select(TEAM, LOG_AGRETOPICITY) %>% 
-        dplyr::as_tibble()
+        dplyr::as_tibble() %>% 
+        code_df_by_team(team)
 }
 
 make_overlap_df <- function(prediction_dbi, max_rank = 20){
@@ -60,7 +63,9 @@ make_overlap_df <- function(prediction_dbi, max_rank = 20){
         dplyr::filter(RANK <= max_rank) %>% 
         dplyr::arrange(RANK) %>% 
         dplyr::select(RANK, TEAM, PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ) %>% 
-        dplyr::as_tibble()
+        dplyr::as_tibble() %>% 
+        dplyr::mutate(PMHC = stringr::str_c(HLA_ALLELE, "_", ALT_EPI_SEQ)) %>%
+        dplyr::select(TEAM, PATIENT_ID, PMHC, RANK)
 }
 
 # binding validation ----
