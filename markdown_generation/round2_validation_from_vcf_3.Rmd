@@ -16,19 +16,19 @@ This assay is a cytometry-based tetramer screen. See more details at Consortium 
 
 ## Number of tested peptides
 ```{r plot1, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_FLOW_I_df, "COUNT", "Number of tested peptides")
+make_validated_submissions_boxplot(validation_df, "TCR_FLOW_I", "COUNT", "Number of tested peptides")
 ```
 
 
 ## Mean rank of tested peptides
 ```{r plot2, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_FLOW_I_df, "MEAN_RANK", "Mean rank of tested peptides")
+make_validated_submissions_boxplot(validation_df, "TCR_FLOW_I", "MEAN_RANK", "Mean rank of tested peptides")
 ```
 
 
 ## Validation rate of tested peptides
 ```{r plot3, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCR_FLOW_I_df, "RATE", "Validation rate of tested peptides")
+make_validated_submissions_boxplot(validation_df, "TCR_FLOW_I", "RATE", "Validation rate of tested peptides")
 ```
 
 # T cell reactivity screen (Mt. Sinai)
@@ -37,17 +37,17 @@ An in vitro functional assay for T cell proliferation. See more details at Conso
 
 ## Number of tested peptides
 ```{r plot10, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCELL_REACTIVITY_df, "COUNT", "Number of tested peptides")
+make_validated_submissions_boxplot(validation_df, "TCELL_REACTIVITY", "COUNT", "Number of tested peptides")
 ```
 
 
 ## Mean rank of tested peptides
 ```{r plot11, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCELL_REACTIVITY_df, "MEAN_RANK", "Mean rank of tested peptides")
+make_validated_submissions_boxplot(validation_df, "TCELL_REACTIVITY", "MEAN_RANK", "Mean rank of tested peptides")
 ```
 
 
 ## Validation rate of tested peptides
 ```{r plot12, echo = F, warning=F, fig.width = 20, fig.height = 10}
-make_validated_submissions_boxplot(TCELL_REACTIVITY_df, "RATE", "Validation rate of tested peptides")
+make_validated_submissions_boxplot(validation_df, "TCELL_REACTIVITY", "RATE", "Validation rate of tested peptides")
 ```

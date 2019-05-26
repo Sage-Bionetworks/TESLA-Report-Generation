@@ -78,84 +78,44 @@ make_submission_plot_dfs <- function(round, source, team){
     return(lst)
 }
 
-make_validation_dfs <- function(round, src, team){
+make_validation_df <- function(round, src, team){
     submission_dbi <- make_submission_dbi(round)
-    # prediction_dbi <- make_prediction_dbi2(src) 
-    # combined_dbi <- 
-    #     dplyr::inner_join(prediction_dbi, submission_dbi) %>% 
-    #     dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK)
-    
-    combined_dbi <-
-        DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>%
-        dplyr::tbl("Predictions") %>%
+
+    combined_df <-
+        make_prediction_dbi(src) %>% 
         dplyr::filter(RANK <= 20) %>%
-        dplyr::filter(SOURCE == src) %>%
         dplyr::inner_join(submission_dbi) %>%
-        dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK)
+        dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK) %>% 
+        as_tibble()
+
     
-    prediction_dbi2 <- combined_dbi %>% 
-        dplyr::select(-HLA_ALLELE)
-    
-    validation_bindings_dbi <- 
+    validated_bindings_df <- 
         DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
         dplyr::tbl("Validated_Bindings") %>% 
-        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) 
-    
-    TCR_NANOPARTICLE_df <- validation_bindings_dbi %>% 
-        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE) %>% 
-        dplyr::filter(!is.na(TCR_NANOPARTICLE)) %>% 
-        dplyr::inner_join(combined_dbi) %>% 
-        dplyr::mutate(ASSAY_NUM = ifelse(TCR_NANOPARTICLE == "+", 1, 0)) %>% 
-        dplyr::group_by(TEAM, PATIENT_ID) %>% 
-        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
-        tibble::as_tibble() %>% 
-        code_df_by_team(team)
-    
-    TCR_FLOW_I_df <- validation_bindings_dbi %>% 
-        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_FLOW_I) %>% 
-        dplyr::filter(!is.na(TCR_FLOW_I)) %>% 
-        dplyr::inner_join(combined_dbi) %>% 
-        dplyr::mutate(ASSAY_NUM = ifelse(TCR_FLOW_I == "+", 1, 0)) %>% 
-        dplyr::group_by(TEAM, PATIENT_ID) %>% 
-        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
-        tibble::as_tibble() %>% 
-        code_df_by_team(team)
-    
-    TCR_FLOW_II_df <- validation_bindings_dbi %>% 
-        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_FLOW_II) %>% 
-        dplyr::filter(!is.na(TCR_FLOW_II)) %>% 
-        dplyr::inner_join(combined_dbi) %>% 
-        dplyr::mutate(ASSAY_NUM = ifelse(TCR_FLOW_II == "+", 1, 0)) %>% 
-        dplyr::group_by(TEAM, PATIENT_ID) %>% 
-        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
-        tibble::as_tibble() %>% 
-        code_df_by_team(team)
-    
-    TCELL_REACTIVITY_df <- 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+        dplyr::as_tibble() %>% 
+        tidyr::gather(key = "ASSAY", value = "RESULT", TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+        tidyr::drop_na() %>% 
+        dplyr::inner_join(combined_df, by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ"))
+
+    validated_epitopes_df <- 
         DBI::dbConnect(bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
         dplyr::tbl("Validated_Epitopes") %>% 
         dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
-        dplyr::filter(!is.na( TCELL_REACTIVITY)) %>% 
-        dplyr::inner_join(prediction_dbi2) %>%
-        dplyr::mutate(ASSAY_NUM = ifelse(TCELL_REACTIVITY == "+", 1, 0)) %>% 
-        dplyr::group_by(TEAM, PATIENT_ID) %>% 
-        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>% 
-        tibble::as_tibble() %>% 
+        dplyr::as_tibble() %>% 
+        tidyr::gather(key = "ASSAY", value = "RESULT", TCELL_REACTIVITY) %>% 
+        tidyr::drop_na() %>% 
+        dplyr::inner_join(combined_df, by = c("PATIENT_ID", "ALT_EPI_SEQ"))
+
+    df <- 
+        dplyr::bind_rows(validated_epitopes_df, validated_bindings_df) %>% 
+        dplyr::select(TEAM, PATIENT_ID, ASSAY, RESULT, RANK) %>% 
+        dplyr::distinct() %>% 
+        dplyr::mutate(ASSAY_NUM = ifelse(RESULT == "+", 1, 0)) %>%
+        dplyr::group_by(TEAM, PATIENT_ID, ASSAY) %>%
+        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>%
         code_df_by_team(team)
-    
-    lst <- list(
-        "TCR_NANOPARTICLE_df" = TCR_NANOPARTICLE_df,
-        "TCR_FLOW_I_df" =  TCR_FLOW_I_df,
-        "TCR_FLOW_II_df" =  TCR_FLOW_II_df,
-        "TCELL_REACTIVITY_df" = TCELL_REACTIVITY_df
-    )
-    return(lst)
 }
-
-
-
-
-
 
 make_dotplot <- function(allele, df){
     plot_df <- dplyr::filter(df, HLA_ALLELE == allele) 

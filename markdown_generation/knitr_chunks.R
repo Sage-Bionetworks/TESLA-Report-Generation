@@ -39,20 +39,11 @@ scatterplot_df <- make_binding_scatterplot_df(ROUND, SOURCE, TEAM)
 
 ## @knitr validation3
 
-validation_dfs <- make_validation_dfs(ROUND, SOURCE, TEAM)
-
-TCR_NANOPARTICLE_df <- validation_dfs[["TCR_NANOPARTICLE_df"]]
-
-TCR_FLOW_I_df <- validation_dfs[["TCR_FLOW_I_df"]]
-
-TCR_FLOW_II_df <- validation_dfs[["TCR_FLOW_II_df"]]
-
-TCELL_REACTIVITY_df <- validation_dfs[["TCELL_REACTIVITY_df"]]
-
+validation_df <- make_validation_df(ROUND, SOURCE, TEAM)
 
 ## @knitr variant counts
 
-variant_count_df <- make_variant_counts_df(patients, TEAM)
+variant_count_df <- make_variant_counts_df(ROUND, TEAM)
 
 ## @knitr variant overlap
 

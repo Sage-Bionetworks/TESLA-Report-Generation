@@ -112,7 +112,7 @@ make_binding_validation_dbi <- function(){
         dplyr::select(ALT_EPI_SEQ, HLA_ALLELE, PATIENT_ID, LOG_BINDING) 
 }
 
-# validation 1
+# validation 1 ----
 
 make_binding_dotplot_df <- function(round, src, team){
     prediction_dbi <- make_combined_binding_prediction_dbi(round, src) 
@@ -181,16 +181,22 @@ make_binding_scatterplot_df <- function(round, src, team){
 
 
 
-make_variant_counts_df <- function(patients, team){
+make_variant_counts_df <- function(round, team){
+    if(round == "1"){
+        patient_ids <- c("1", "2", "3", "4")
+    } else if (round == "2"){
+        patient_ids <- c("10", "11", "12", "14", "15", "16")
+    } else {
+        stop("Data for round not available")
+    }
     df <- "select team, patient, SNPs, MNPs, indels, others from syn11465705" %>% 
-        synapser::synTableQuery() %>% 
+        synapser::synTableQuery(includeRowIdAndRowVersion = F) %>% 
         as.data.frame %>% 
         dplyr::as_tibble() %>%
         dplyr::rename(PATIENT_ID = patient) %>% 
         dplyr::rename(TEAM = team) %>% 
-        dplyr::filter(PATIENT_ID %in% patients) %>% 
+        dplyr::filter(PATIENT_ID %in% patient_ids) %>% 
         tidyr::drop_na() %>% 
-        dplyr::select(-c(ROW_ID, ROW_VERSION)) %>% 
         tidyr::gather(key = "VARIANT", value = "N", -c(TEAM, PATIENT_ID)) %>% 
         dplyr::mutate(LOG_N = log10(N + 1)) %>% 
         code_df_by_team(team) %>% 

@@ -148,8 +148,9 @@ make_validation_scatterplot_obj <- function(df, title){
 }
 
 
-make_validated_submissions_boxplot <- function(df, column, ylab){
+make_validated_submissions_boxplot <- function(df, assay, column, ylab){
     plot <- df %>% 
+        dplyr::filter(ASSAY == assay) %>% 
         ggplot(aes_string(x = "PATIENT_ID", y = column)) +
         geom_boxplot(color = "black", fill = "white", outlier.shape = NA) +
         geom_jitter(
