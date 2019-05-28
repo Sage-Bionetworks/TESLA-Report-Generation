@@ -179,7 +179,7 @@ make_validation_dotplot_obj <- function(df){
     lines_vector <- make_dotplot_lines_vector(df)
     df %>% 
         ggplot(aes(
-            x = interaction(ALT_EPI_SEQ, PATIENT_ID, sep = ";Pat:"),  
+            x = interaction(ALT_EPI_SEQ, PATIENT_ID, sep = ";Pat:"),
             y = LOG_BINDING)) +
         geom_jitter(aes(color = TEAM, size = TEAM, alpha = TEAM), width = .4) +
         scale_alpha_manual(values = c(0.7, 1, 0.7)) +
@@ -205,7 +205,7 @@ make_dotplot_lines_vector <- function(df){
 
 ## validation 2 ----
 
-make_validation_scatterplot_obj <- function(df, title){
+make_validation_scatterplot_obj <- function(df){
     title <- make_validation_scatterplot_title(df)
     plot <- df %>% 
         ggplot(aes(x = LOG_PREDICTED_BINDING,  y = LOG_MEASURED_BINDING)) +

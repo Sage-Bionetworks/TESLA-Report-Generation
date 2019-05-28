@@ -1,47 +1,66 @@
-code_df_by_team <- function(plot_data_df, team){
-    mutate(plot_data_df, 
-           team_status = ifelse(
-               is.na(TEAM), 
-               "No team", 
-               ifelse(
-                   TEAM == team, 
-                   "Your team", 
-                   "Other teams")))
+code_df_by_team <- function(df, team){
+    code_df_by_column(
+        df, 
+        "TEAM", 
+        team, 
+        "team_status", 
+        "Your team", 
+        "No Team", 
+        "Other teams")
 }
 
-# df <- submission_dfs[["log_peptides_df"]] %>% 
-#     bind_rows(tibble(
-#         TEAM = NA
-#     ))
-# code_df_by_team2 <- function(df, team){
-#     join_df <- dplyr::tibble(
-#         "x" = c(team, )
-#     )
-#     result <- df %>% 
-#         
-#     
-#     
-#     
-#     mutate(df, 
-#            team_status = ifelse(
-#                is.na(TEAM), 
-#                "No team", 
-#                ifelse(
-#                    TEAM == team, 
-#                    "Your team", 
-#                    "Other teams")))
-# }
-
-
+code_df_by_column <- function(
+    df, column, matching_values,
+    new_column  = "New_column",
+    new_value   = "matches", 
+    na_value    = NA, 
+    other_value = "doesn't match"){
+    
+    df %>% 
+        dplyr::rename(TEMP_COL = column) %>% 
+        dplyr::mutate(
+            NEW_COL = ifelse(
+                is.na(TEMP_COL),
+                na_value,
+                ifelse(
+                    TEMP_COL %in% matching_values,
+                    new_value,
+                    other_value
+                )
+            )
+        ) %>% 
+        dplyr::rename(!!column := TEMP_COL) %>% 
+        dplyr::rename(!!new_column := NEW_COL)
+}
 
 relevel_df <- function(df){
     new_lvs <- df %>% 
-        filter(TEAM == "Measured") %>% 
-        arrange(LOG_BINDING) %>% 
-        use_series(ALT_EPI_SEQ) %>% 
+        dplyr::filter(TEAM == "Measured") %>% 
+        dplyr::arrange(LOG_BINDING) %>% 
+        magrittr::use_series(ALT_EPI_SEQ) %>% 
         unique()
-    df$ALT_EPI_SEQ = factor(df$ALT_EPI_SEQ, levels = new_lvs, ordered = TRUE)
-    return(df)
+    
+    new_df <- dplyr::mutate(
+        df, 
+        ALT_EPI_SEQ = forcats::fct_relevel(
+            ALT_EPI_SEQ, new_lvs))
+    
+    return(new_df)
+}
+
+relevel_df <- function(df, column){
+    new_lvs <- df %>% 
+        dplyr::filter(TEAM == "Measured") %>% 
+        dplyr::arrange(LOG_BINDING) %>% 
+        magrittr::use_series(ALT_EPI_SEQ) %>% 
+        unique()
+    
+    new_df <- dplyr::mutate(
+        df, 
+        ALT_EPI_SEQ = forcats::fct_relevel(
+            ALT_EPI_SEQ, new_lvs))
+    
+    return(new_df)
 }
 
 make_submission_plot_dfs <- function(round, source, team){

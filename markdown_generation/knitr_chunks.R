@@ -27,11 +27,9 @@ agretopicity_df <- submission_dfs[["agretopicity_df"]]
 
 epitope_overlap_df <- submission_dfs[["epitope_overlap_df"]] 
     
-
 ## @knitr validation1
 
 dotplot_df <- make_binding_dotplot_df(ROUND, SOURCE, TEAM)
-
 
 ## @knitr validation2
 
