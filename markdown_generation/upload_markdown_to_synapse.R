@@ -105,7 +105,8 @@ param_df <-
     dplyr::bind_rows(r1_df, r2_df, survey_df) %>% 
     dplyr::filter(type %in% markdown_types) %>% 
     dplyr::select(-type) %>%
-    tidyr::nest(-c(team, round, source), .key = df)
+    tidyr::nest(-c(team, round, source), .key = df) %>% 
+    slice(1)
 
 purrr::pmap(param_df, knit_markdown_by_group)
                      

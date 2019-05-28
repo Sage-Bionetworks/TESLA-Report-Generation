@@ -19,72 +19,72 @@ For a given allele, the absence of a plot implies none of your teams predicted n
 
 ## A*01:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("A*01:01", dotplot_df)
+text <- make_validation_dotplot("A*01:01", dotplot_df)
 ```
 `r text`
 
 ## A*02:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("A*02:01", dotplot_df)
+text <- make_validation_dotplot("A*02:01", dotplot_df)
 ```
 `r text`
 
 ## A*03:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("A*03:01", dotplot_df)
+text <- make_validation_dotplot("A*03:01", dotplot_df)
 ```
 `r text`
 
 ## A*32:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("A*32:01", dotplot_df)
+text <- make_validation_dotplot("A*32:01", dotplot_df)
 ```
 `r text`
 
 ## A*68:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("A*68:01", dotplot_df)
+text <- make_validation_dotplot("A*68:01", dotplot_df)
 ```
 `r text`
 
 ## B*07:02
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("B*07:02", dotplot_df)
+text <- make_validation_dotplot("B*07:02", dotplot_df)
 ```
 `r text`
 
 ## B*08:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("B*08:01", dotplot_df)
+text <- make_validation_dotplot("B*08:01", dotplot_df)
 ```
 `r text`
 
 ## B*44:02
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("B*44:02", dotplot_df)
+text <- make_validation_dotplot("B*44:02", dotplot_df)
 ```
 `r text`
 
 ## B*51:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("B*51:01", dotplot_df)
+text <- make_validation_dotplot("B*51:01", dotplot_df)
 ```
 `r text`
 
 ## B*57:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("B*57:01", dotplot_df)
+text <- make_validation_dotplot("B*57:01", dotplot_df)
 ```
 `r text`
 
 ## C*03:03
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("C*03:03", dotplot_df)
+text <- make_validation_dotplot("C*03:03", dotplot_df)
 ```
 `r text`
 
 ## C*05:01
 ```{r echo = F, fig.width = 20, fig.height = 10}
-text <- make_dotplot("C*05:01", dotplot_df)
+text <- make_validation_dotplot("C*05:01", dotplot_df)
 ```
 `r text`

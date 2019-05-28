@@ -18,24 +18,24 @@ For a given patient, the absence of a plot implies none of your teams predicted 
 
 ## Patient 1
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("1", scatterplot_df)
+text <- make_validation_scatterplot("1", scatterplot_df)
 ```
 `r text`
 
 ## Patient 2
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("2", scatterplot_df)
+text <- make_validation_scatterplot("2", scatterplot_df)
 ```
 `r text`
 
 ## Patient 3
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("3", scatterplot_df)
+text <- make_validation_scatterplot("3", scatterplot_df)
 ```
 `r text`
 
 ## Patient 4
 ```{r echo = F, warning=F, fig.width = 20, fig.height = 10}
-text <- make_scatterplot("4", scatterplot_df)
+text <- make_validation_scatterplot("4", scatterplot_df)
 ```
 `r text`

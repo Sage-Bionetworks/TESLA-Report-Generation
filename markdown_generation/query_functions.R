@@ -208,59 +208,6 @@ make_validation_df <- function(round, src, team){
 
 # others -----
 
-
-
-
-
-
-
-
-make_variant_counts_df <- function(round, team){
-    if(round == "1"){
-        patient_ids <- c("1", "2", "3", "4")
-    } else if (round == "2"){
-        patient_ids <- c("10", "11", "12", "14", "15", "16")
-    } else {
-        stop("Data for round not available")
-    }
-    df <- "select team, patient, SNPs, MNPs, indels, others from syn11465705" %>% 
-        synapser::synTableQuery(includeRowIdAndRowVersion = F) %>% 
-        as.data.frame %>% 
-        dplyr::as_tibble() %>%
-        dplyr::rename(PATIENT_ID = patient) %>% 
-        dplyr::rename(TEAM = team) %>% 
-        dplyr::filter(PATIENT_ID %in% patient_ids) %>% 
-        tidyr::drop_na() %>% 
-        tidyr::gather(key = "VARIANT", value = "N", -c(TEAM, PATIENT_ID)) %>% 
-        dplyr::mutate(LOG_N = log10(N + 1)) %>% 
-        code_df_by_team(team) %>% 
-        dplyr::select(-c(TEAM, N)) %>% 
-        dplyr::mutate(PATIENT_ID = as.character(PATIENT_ID))
-}
-
-make_variant_overlap_df <- function(round, team){
-    if(round == "1"){
-        synapse_ids <- c("syn11498546", "syn11498547", "syn11498548", "syn11498549") 
-        patient_ids <- c("1", "2", "3", "4")
-    } else if (round == "2"){
-        synapse_ids <- c("syn11465124", "syn11465125", "syn11465126", "syn11465127", "syn11465128", "syn11465130")
-        patient_ids <- c("10", "11", "12", "14", "15", "16")
-    } else {
-        stop("Data for round not available")
-    }
-    df <- synapse_ids %>% 
-        purrr::map(make_overlap_list) %>% 
-        purrr::map(tibble::enframe) %>% 
-        purrr::map2(patient_ids, ~dplyr::mutate(.x, patient = .y)) %>% 
-        dplyr::bind_rows()  %>%
-        dplyr::rename(TEAM = name)  %>% 
-        code_df_by_team(team)
-    if(!team %in% df$TEAM){
-        df <- dplyr::filter(df, TEAM == team)
-    }
-    return(df)
-}
-
 make_survey_df <- function(team){
     question_dbi <- BQ_DBI %>% 
         dplyr::tbl("Survey_Questions") %>% 

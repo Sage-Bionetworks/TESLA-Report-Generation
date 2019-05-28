@@ -80,29 +80,11 @@ make_submission_plot_dfs <- function(round, source, team){
 
 
 
-make_dotplot <- function(allele, df){
-    plot_df <- dplyr::filter(df, HLA_ALLELE == allele) 
-    if(nrow(plot_df) > 0){
-        make_validation_dotplot(plot_df)
-        text <- ""
-    } else {
-        text <- "None of your teams predicted neoepitopes with binding scores for this allele were validated."
-    }
-    return(text)
-}
 
 
 
-make_scatterplot <- function(pat, df){
-    plot_df <- dplyr::filter(df, PATIENT_ID == pat) 
-    if(nrow(plot_df) > 0){
-        make_validation_scatterplot(plot_df)
-        text <- ""
-    } else {
-        text <- "None of your teams predicted neoepitopes with binding scores for this patient were validated."
-    }
-    return(text)
-}
+
+
 
 create_p_common_matrix <- function(patient, df, max_rank = 20){
     patient_df <- df %>% 
@@ -147,40 +129,6 @@ create_median_table <- function(matrix){
         set_names(c("team", "median")) 
 }
 
-make_variant_boxplot <- function(pat, df){
-    plot_df <- dplyr::filter(df, PATIENT_ID == pat) 
-    if(!is.null(plot_df)){
-        make_variant_boxplot_obj(plot_df)
-        text <- ""
-    } else {
-        text <- "Your team had none of the plotted variants for this patient."
-    }
-    return(text)
-}
-
-make_variant_histogram <- function(pat, df){
-    plot_df <- dplyr::filter(df, patient == pat) 
-    if("Your team" %in% plot_df$team_status){
-        make_variant_histogram_obj(plot_df)
-        text <- ""
-    } else {
-        text <- "Your team has no variant data for this patient."
-    }
-    return(text)
-}
-
-
-make_survey_barchart <- function(cat, df){
-    plot_df <- dplyr::filter(df, CATEGORY == cat) 
-    if(nrow(plot_df) > 0){
-        make_survey_barchart_obj(plot_df)
-        text <- ""
-    } else {
-        text <- "Your team did not answer questions in this category."
-    }
-    return(text)
-}
-
 
 # functions written br Kristen
 
@@ -222,6 +170,57 @@ birdUnique=function(bird,patientDataset,type="records:"){
 
 getbird=function(x){as.vector(strsplit(x,split = "_")[[1]][1])}
 
+# these are functions that use synapse data, but shoudl be turned into BQ queries
 
-# these need to go to the appropriate files
+make_df_from_synapse_table_query <- function(query){
+    result <- synapser::synTableQuery(query, includeRowIdAndRowVersion = F)
+    result$asDataFrame() %>% 
+        dplyr::as_tibble()
+}
+
+make_variant_counts_df <- function(round, team){
+    synapser::synLogin()
+    if(round == "1"){
+        patient_ids <- c("1", "2", "3", "4")
+    } else if (round == "2"){
+        patient_ids <- c("10", "11", "12", "14", "15", "16")
+    } else {
+        stop("Data for round not available")
+    }
+    df <- "select team, patient, SNPs, MNPs, indels, others from syn11465705" %>% 
+        make_df_from_synapse_table_query %>% 
+        dplyr::rename(PATIENT_ID = patient) %>% 
+        dplyr::rename(TEAM = team) %>% 
+        dplyr::filter(PATIENT_ID %in% patient_ids) %>% 
+        tidyr::drop_na() %>% 
+        tidyr::gather(key = "VARIANT", value = "N", -c(TEAM, PATIENT_ID)) %>% 
+        dplyr::mutate(LOG_N = log10(N + 1)) %>% 
+        code_df_by_team(team) %>% 
+        dplyr::select(-c(TEAM, N)) %>% 
+        dplyr::mutate(PATIENT_ID = as.character(PATIENT_ID))
+}
+
+make_variant_overlap_df <- function(round, team){
+    synapser::synLogin()
+    if(round == "1"){
+        synapse_ids <- c("syn11498546", "syn11498547", "syn11498548", "syn11498549") 
+        patient_ids <- c("1", "2", "3", "4")
+    } else if (round == "2"){
+        synapse_ids <- c("syn11465124", "syn11465125", "syn11465126", "syn11465127", "syn11465128", "syn11465130")
+        patient_ids <- c("10", "11", "12", "14", "15", "16")
+    } else {
+        stop("Data for round not available")
+    }
+    df <- synapse_ids %>% 
+        purrr::map(make_overlap_list) %>% 
+        purrr::map(tibble::enframe) %>% 
+        purrr::map2(patient_ids, ~dplyr::mutate(.x, patient = .y)) %>% 
+        dplyr::bind_rows()  %>%
+        dplyr::rename(TEAM = name)  %>% 
+        code_df_by_team(team)
+    if(!team %in% df$TEAM){
+        df <- dplyr::filter(df, TEAM == team)
+    }
+    return(df)
+}
 
