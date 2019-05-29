@@ -11,10 +11,24 @@
 #     "--markdown_types",
 #     type = "character",
 #     default = "all")
+#
+# parser$add_argument(
+#     "--teams",
+#     type = "character",
+#     default = "all")
+#
+# parser$add_argument(
+#     "replace_behavior",
+#     type = "character",
+#     default = "replace")
 # 
 # args = parser$parse_args()
 
-args = list("version" = "test", "markdown_types" = "all")
+args = list(
+    "version" = "test", 
+    "markdown_types" = "all",
+    "teams" = "merlin",
+    "replace_behavior" = "replace")
 
 
 library(synapser)
@@ -26,9 +40,12 @@ library(yaml)
 
 synapser::synLogin()
 
-source("upload_markdown_functions.R")
+# if(!all(project_teams %in% project_df$team)) {
+#     stop("Not all teams have existing projects")
+# }
 
-wiki_df <- readr::read_tsv("../markdown_generation/markdown_file_list.tsv")
+
+source("upload_markdown_functions.R")
 
 if(args$version == "live") {
     id_column <- "Report_project_id"
@@ -43,72 +60,94 @@ if(args$markdown_types == "all"){
     markdown_types <- args$markdown_types
 }
 
+
+# if(args$teams != "all"){
+#     project_df = dplyr::filter(project_df, team == args$teams)
+#     submission_df = dplyr::filter(submission_df, TEAM == args$teams)
+# }
+
+# input
+
+markdown_df <- readr::read_tsv("../markdown_generation/markdown_file_list.tsv")
+
 project_df <- "syn11612493" %>% 
     synapser::synGet() %>% 
     magrittr::use_series("path") %>% 
     readr::read_csv() %>% 
     dplyr::select(team = "Bird_alias", id_column) %>% 
-    magrittr::set_colnames(c("team", "owner"))
+    magrittr::set_colnames(c("team", "owner")) %>% 
+    dplyr::mutate(parentWikiId = purrr::map_chr(owner, get_or_create_root_wiki_id))
 
-submission_df <- 
+if(args$teams != "all"){
+    project_df = dplyr::filter(project_df, team == args$teams)
+}
+
+submission_dbi <- 
     DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
     dplyr::tbl("Submissions") %>% 
     dplyr::select(TEAM, ROUND) %>% 
-    dplyr::distinct() %>% 
-    dplyr::as_tibble() 
+    dplyr::distinct() 
 
-r1_teams <- submission_df %>% 
-    dplyr::filter(ROUND == "1") %>% 
-    magrittr::use_series(TEAM)
-
-r2_teams <- submission_df %>% 
-    dplyr::filter(ROUND == "2") %>% 
-    magrittr::use_series(TEAM)
-
-project_teams <- 
-    c(r1_teams, r2_teams) %>% 
-    unique
-
-if(!all(project_teams %in% project_df$team)) {
-    stop("Not all teams have existing projects")
-}
-
-survey_teams <- 
+survey_dbi <- 
     DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
     dplyr::tbl("Survey_Answers") %>% 
     dplyr::select(TEAM) %>% 
-    dplyr::distinct() %>% 
-    dplyr::as_tibble() %>% 
-    magrittr::use_series(TEAM) %>% 
-    purrr::discard(., ! . %in% project_teams)
+    dplyr::distinct()
 
-r1_df <- project_df %>% 
-    filter(team %in% r1_teams) %>% 
-    merge(wiki_df) %>% 
-    dplyr::as_tibble() %>% 
-    dplyr::filter(type == "round1") 
+if(args$replace_behavior != "add"){
+    wiki_df <- project_df %>% 
+        magrittr::use_series(owner) %>% 
+        purrr::map(get_wiki_df_by_project) %>% 
+        dplyr::bind_rows()
+}
 
-r2_df <- project_df %>% 
-    filter(team %in% r2_teams) %>% 
-    merge(wiki_df) %>% 
-    dplyr::as_tibble() %>% 
-    dplyr::filter(type == "round2") 
+# data processing ----
 
-survey_df <- project_df %>% 
-    filter(team %in% survey_teams) %>% 
-    merge(wiki_df) %>% 
-    dplyr::as_tibble() %>% 
-    dplyr::filter(type == "survey")
+r1_teams <- get_teams_from_submissions_dbi(submission_dbi, "1")
+r2_teams <- get_teams_from_submissions_dbi(submission_dbi, "2")
+project_teams <- get_teams_from_submissions_dbi(submission_dbi)
+survey_teams <- get_survey_teams(project_teams, survey_dbi)
 
+team_lists <- list(
+    r1_teams,
+    r2_teams,
+    survey_teams,
+    project_teams
+)
 
-param_df <- 
-    dplyr::bind_rows(r1_df, r2_df, survey_df) %>% 
-    dplyr::filter(type %in% markdown_types) %>% 
-    dplyr::select(-type) %>%
-    tidyr::nest(-c(team, round, source), .key = df) 
+types <- c("round1", "round2", "survey", "root")
 
-purrr::pmap(param_df, knit_markdown_by_group)
-                     
+create_wiki_param_df <- 
+    purrr::map2(
+        team_lists, 
+        types, 
+        ~join_markdown_to_project_df(project_df, markdown_df, .x, .y)
+    ) %>% 
+    dplyr::bind_rows() %>%
+    dplyr::filter(type %in% markdown_types) %>%
+    dplyr::select(-type)
+
+if(args$replace_behavior == "replace"){
+    delete_wiki_ids <-  wiki_df %>% 
+        dplyr::filter(!is.na(parent_id)) %>% 
+        dplyr::left_join(
+            create_wiki_param_df, 
+            by = c("project_id" = "owner", "parent_id" = "parentWikiId", "title" = "wikiName")) %>% 
+        magrittr::use_series(id) 
+}
+
+create_wiki_param_df <- create_wiki_param_df %>% 
+    tidyr::nest(
+        -c(team, round, source), 
+        .key = df)
+
+# output
+
+if(args$replace_behavior == "replace" && length(delete_wiki_ids) > 0){
+    delete_wikis_by_id(delete_wiki_ids)
+}
+purrr::pmap(create_wiki_param_df, knit_markdown_by_group)
+
 
 
 
