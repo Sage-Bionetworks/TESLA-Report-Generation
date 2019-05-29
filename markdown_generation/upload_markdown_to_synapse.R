@@ -11,10 +11,24 @@
 #     "--markdown_types",
 #     type = "character",
 #     default = "all")
+#
+# parser$add_argument(
+#     "--teams",
+#     type = "character",
+#     default = "all")
+#
+# parser$add_argument(
+#     "replace_behavior",
+#     type = "character",
+#     default = "replace")
 # 
 # args = parser$parse_args()
 
-args = list("version" = "test", "markdown_types" = "all")
+args = list(
+    "version" = "test", 
+    "markdown_types" = "all",
+    "teams" = "merlin",
+    "replace_behavior" = "add")
 
 
 library(synapser)
@@ -48,7 +62,8 @@ project_df <- "syn11612493" %>%
     magrittr::use_series("path") %>% 
     readr::read_csv() %>% 
     dplyr::select(team = "Bird_alias", id_column) %>% 
-    magrittr::set_colnames(c("team", "owner"))
+    magrittr::set_colnames(c("team", "owner")) %>% 
+    dplyr::mutate(root_wiki = purrr::map(owner, get_or_create_root_wiki_id))
 
 submission_df <- 
     DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
@@ -56,6 +71,11 @@ submission_df <-
     dplyr::select(TEAM, ROUND) %>% 
     dplyr::distinct() %>% 
     dplyr::as_tibble() 
+
+if(args$teams != "all"){
+    project_df = dplyr::filter(project_df, team == args$teams)
+    submission_df = dplyr::filter(submission_df, TEAM == args$teams)
+}
 
 r1_teams <- submission_df %>% 
     dplyr::filter(ROUND == "1") %>% 
@@ -100,15 +120,13 @@ survey_df <- project_df %>%
     dplyr::as_tibble() %>% 
     dplyr::filter(type == "survey")
 
-
 param_df <- 
     dplyr::bind_rows(r1_df, r2_df, survey_df) %>% 
     dplyr::filter(type %in% markdown_types) %>% 
     dplyr::select(-type) %>%
-    tidyr::nest(-c(team, round, source), .key = df) %>% 
-    slice(1)
+    tidyr::nest(-c(team, round, source), .key = df)
 
-purrr::pmap(param_df, knit_markdown_by_group)
+# purrr::pmap(param_df, knit_markdown_by_group)
                      
 
 
