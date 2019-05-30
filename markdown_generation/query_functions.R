@@ -20,18 +20,23 @@ make_submission_dbi <- function(rounds = c("1", "2", "x")){
         dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
 }
 
-make_prediction_dbi <- function(sources = c("fastq", "vcf")){
+make_prediction_dbi <- function(sources = c("fastq", "vcf"), ranked = T){
     prediction_dbi <- BQ_DBI %>% 
         dplyr::tbl("Predictions") %>% 
-        dplyr::filter(SOURCE %in% sources) %>% 
-        dplyr::filter(!is.na(RANK))
+        dplyr::filter(SOURCE %in% sources)
+    if(ranked) prediction_dbi <- dplyr::filter(prediction_dbi, !is.na(RANK))
+    return(prediction_dbi)
 }
 
 # submission ----
 
-make_submission_plot_prediction_dbi <- function(round, src){
-    submission_dbi <- make_submission_dbi(round)
-    prediction_dbi <- make_prediction_dbi(src) 
+make_submission_plot_prediction_dbi <- function(
+    rounds = c("1", "2", "x"),
+    sources = c("fastq", "vcf"),
+    ranked = T){
+
+    submission_dbi <- make_submission_dbi(rounds)
+    prediction_dbi <- make_prediction_dbi(sources, ranked) 
     
     dbi <- 
         dplyr::inner_join(prediction_dbi, submission_dbi) %>% 
@@ -178,20 +183,12 @@ make_validation_df <- function(round, src, team){
         dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK) %>% 
         as_tibble()
     
-    validated_bindings_df <- BQ_DBI %>% 
-        dplyr::tbl("Validated_Bindings") %>% 
-        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
-        dplyr::as_tibble() %>% 
-        tidyr::gather(key = "ASSAY", value = "RESULT", TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
-        tidyr::drop_na() %>% 
+    validated_bindings_df <- 
+        make_validated_bindings_df() %>% 
         dplyr::inner_join(combined_df, by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ"))
-    
-    validated_epitopes_df <- BQ_DBI %>% 
-        dplyr::tbl("Validated_Epitopes") %>% 
-        dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
-        dplyr::as_tibble() %>% 
-        tidyr::gather(key = "ASSAY", value = "RESULT", TCELL_REACTIVITY) %>% 
-        tidyr::drop_na() %>% 
+        
+    validated_epitopes_df <- 
+        make_validated_epitopes_df() %>% 
         dplyr::inner_join(combined_df, by = c("PATIENT_ID", "ALT_EPI_SEQ"))
     
     df <- 
@@ -202,6 +199,24 @@ make_validation_df <- function(round, src, team){
         dplyr::group_by(TEAM, PATIENT_ID, ASSAY) %>%
         dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>%
         code_df_by_team(team)
+}
+
+make_validated_bindings_df <- function(){
+    validated_bindings_df <- BQ_DBI %>% 
+        dplyr::tbl("Validated_Bindings") %>% 
+        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+        dplyr::as_tibble() %>% 
+        tidyr::gather(key = "ASSAY", value = "RESULT", TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+        tidyr::drop_na() 
+}
+
+make_validated_epitopes_df <- function(){
+    validated_epitopes_df <- BQ_DBI %>% 
+        dplyr::tbl("Validated_Epitopes") %>% 
+        dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
+        dplyr::as_tibble() %>% 
+        tidyr::gather(key = "ASSAY", value = "RESULT", TCELL_REACTIVITY) %>% 
+        tidyr::drop_na()
 }
 
 
