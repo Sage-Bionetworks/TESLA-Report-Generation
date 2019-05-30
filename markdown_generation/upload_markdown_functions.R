@@ -28,13 +28,9 @@ join_markdown_to_project_df <- function(project_df, markdown_df, teams, typ){
 
 
 knit_markdown_by_group <- function(team, source, round, df, root_wiki, verbose = T){
-    synapse_project_id <- df$owner[[1]]
-    if(verbose) log_markdown_by_group(team, source, round, synapse_project_id)
+    if(verbose) log_markdown_by_group(team, source, round, df$owner[[1]])
     create_config_yaml(team, source, round)
-    df %>%
-        dplyr::select(file, owner, parentWikiId, wikiName) %>% 
-        purrr::pmap(knit2synapse::knitfile2synapse)
-    
+    purrr::pmap(df, knit2synapse::knitfile2synapse)
     clean_up_directory()
     
 }

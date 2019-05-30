@@ -1,34 +1,35 @@
-# library(argparse)
-# 
-# parser = ArgumentParser()
-# 
-# parser$add_argument(
-#     "--version",
-#     type = "character",
-#     default = "test")
-# 
-# parser$add_argument(
-#     "--markdown_types",
-#     type = "character",
-#     default = "all")
-#
-# parser$add_argument(
-#     "--teams",
-#     type = "character",
-#     default = "all")
-#
-# parser$add_argument(
-#     "replace_behavior",
-#     type = "character",
-#     default = "replace")
-# 
-# args = parser$parse_args()
+library(argparse)
 
-args = list(
-    "version" = "test",
-    "markdown_types" = "all",
-    "teams" = "merlin",
-    "replace_behavior" = "keep")
+parser = ArgumentParser()
+
+parser$add_argument(
+    "--version",
+    type = "character",
+    default = "test")
+
+parser$add_argument(
+    "--markdown_types",
+    type = "character",
+    default = "all")
+
+parser$add_argument(
+    "--teams",
+    type = "character",
+    default = "all")
+
+parser$add_argument(
+    "replace_behavior",
+    type = "character",
+    default = "replace")
+
+args = parser$parse_args()
+
+# testing code
+# args = list(
+#     "version" = "test",
+#     "markdown_types" = "all",
+#     "teams" = "merlin",
+#     "replace_behavior" = "replace")
 
 
 library(synapser)
@@ -39,10 +40,6 @@ library(bigrquery)
 library(yaml)
 
 synapser::synLogin()
-
-# if(!all(project_teams %in% project_df$team)) {
-#     stop("Not all teams have existing projects")
-# }
 
 
 source("upload_markdown_functions.R")
@@ -55,7 +52,7 @@ if(args$version == "test") {
 }
 
 if(args$markdown_types == "all"){
-    markdown_types <- c("round1", "round2", "survey")
+    markdown_types <- c("round1", "round2", "survey", "root")
 } else {
     markdown_types <- args$markdown_types
 }
@@ -103,6 +100,10 @@ r2_teams <- get_teams_from_submissions_dbi(submission_dbi, "2")
 project_teams <- get_teams_from_submissions_dbi(submission_dbi)
 survey_teams <- get_survey_teams(project_teams, survey_dbi)
 
+if(!all(project_teams %in% project_df$team)) {
+    stop("Not all teams have existing projects")
+}
+
 team_lists <- list(
     r1_teams,
     r2_teams,
@@ -139,7 +140,17 @@ if(args$replace_behavior == "keep"){
         by = c("owner" = "project_id", "parentWikiId" = "parent_id", "wikiName" = "title"))
 }
 
+
+
 nested_create_wiki_param_df <- create_wiki_param_df %>% 
+    dplyr::filter(wikiName != "Report") %>%
+    tidyr::nest(
+        -c(team, round, source), 
+        .key = df)
+    
+nested_create_root_wiki_param_df <- create_wiki_param_df %>% 
+    dplyr::filter(wikiName == "Report") %>% 
+    dplyr::select(-parentWikiId) %>% 
     tidyr::nest(
         -c(team, round, source), 
         .key = df)
@@ -150,6 +161,7 @@ if(args$replace_behavior == "replace" && nrow(delete_wiki_param_df) > 0){
     purrr::pmap(delete_wiki_param_df, delete_project_wiki)
 }
 purrr::pmap(nested_create_wiki_param_df, knit_markdown_by_group)
+purrr::pmap(nested_create_root_wiki_param_df, knit_markdown_by_group)
 
 
 

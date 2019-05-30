@@ -1,0 +1,10 @@
+This report includes summarized data from submissions and validation experiments for Rounds 1 and 2 in TESLA. Data from other teams is shown to allow you to put your team's submissions in context with other teams.
+
+# Data in plots
+In all plots only ranked predictions are shown. In some cases, where noted, only a certian amount of highly ranked predictions are used. For round 2, there are versions from both fastq and vcf predictions if teams made those. 
+
+# Data in tables
+All predictions for rounds 1 and 2 that were validated by assay have been placed into tables under the 'Tables' tab above. To see what each column means click [Epitope table data dictionary](https://www.synapse.org/#!Synapse:syn7362874/wiki/511360)
+
+# Data agreement
+Data and results presented in TESLA webinars and released in participant reports are confidential and are under embargo and should be discussed between participants only.
