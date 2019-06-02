@@ -18,7 +18,7 @@ parser$add_argument(
     default = "all")
 
 parser$add_argument(
-    "replace_behavior",
+    "--replace_behavior",
     type = "character",
     default = "replace")
 
