@@ -27,7 +27,7 @@ text <- ""
 The distribution of peptide lengths for top 20 ranked peptides is shown. Your team's value is highlighted with a red outline.
 
 ```{r echo = F, fig.width = 20, fig.height = 10}
-make_agretopicity_boxplot(agretopicity_df)
+make_pep_length_barchart(peptide_length_df)
 text <- ""
 ```
 `r text`
@@ -35,7 +35,7 @@ text <- ""
 ## Agretopicity Index (HLA binding ALT / HLA binding REF)
 The distribution of the agretopicity index for the top 20 ranked peptides is shown.
 ```{r echo = F, fig.width = 20, fig.height = 10}
-make_pep_length_barchart(peptide_length_df)
+make_agretopicity_boxplot(agretopicity_df)
 text <- ""
 ```
 `r text`
