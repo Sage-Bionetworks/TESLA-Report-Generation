@@ -161,7 +161,7 @@ make_pep_length_barchart_obj <- function(df){
 
 make_epitope_overlap_boxplot_obj <- function(df){
     df %>% 
-        ggplot(aes(x = PATIENT_ID, y = SCORE)) +
+        ggplot(aes(x = PATIENT_ID, y = MED_OVERLAP)) +
         geom_boxplot(color = "black", fill = "white", outlier.shape = NA) +
         geom_jitter(aes(color = team_status, shape = team_status), size = 4) + 
         labs(shape = "") +

@@ -13,6 +13,7 @@ TEAM   <- config$team
 source("markdown_functions.R")
 source("plot_functions.R")
 source("query_functions.R")
+source("transform_functions.R")
 
 
 ## @knitr submissions

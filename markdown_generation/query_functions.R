@@ -6,7 +6,7 @@ BQ_PROJECT <- "neoepitopes"
 BQ_DATASET <- "Version_3"
 
 BQ_DBI     <- DBI::dbConnect(
-    bigquery(), 
+    bigrquery::bigquery(), 
     project = BQ_PROJECT,
     dataset = BQ_DATASET)
 
@@ -23,7 +23,8 @@ make_submission_dbi <- function(rounds = c("1", "2", "x")){
 make_prediction_dbi <- function(sources = c("fastq", "vcf"), ranked = T){
     prediction_dbi <- BQ_DBI %>% 
         dplyr::tbl("Predictions") %>% 
-        dplyr::filter(SOURCE %in% sources)
+        dplyr::filter(SOURCE %in% sources) %>% 
+        dplyr::arrange(RANK)
     if(ranked) prediction_dbi <- dplyr::filter(prediction_dbi, !is.na(RANK))
     return(prediction_dbi)
 }
@@ -52,43 +53,33 @@ make_submission_plot_prediction_dbi <- function(
 }
 
 
-make_log_peptides_df <- function(prediction_dbi, team){
+make_log_peptides_dbi <- function(prediction_dbi){
     prediction_dbi %>% 
         dplyr::group_by(TEAM, PATIENT_ID) %>% 
         dplyr::summarise(COUNT = n()) %>% 
         dplyr::mutate(LOG_COUNT = log10(COUNT)) %>% 
-        dplyr::select(TEAM, PATIENT_ID, LOG_COUNT) %>% 
-        dplyr::as_tibble() %>% 
-        code_df_by_team(team)
+        dplyr::select(TEAM, PATIENT_ID, LOG_COUNT) 
 }
 
-make_peptide_length_df <- function(prediction_dbi, team, max_rank = 20){
+make_peptide_length_dbi <- function(prediction_dbi, max_rank = 20){
     prediction_dbi %>% 
         dplyr::filter(RANK <= max_rank) %>% 
-        dplyr::select(TEAM, PEP_LEN) %>% 
-        dplyr::as_tibble() %>% 
-        code_df_by_team(team)
+        dplyr::select(TEAM, PEP_LEN)
 }
 
-make_agretopicity_df <- function(prediction_dbi, team, max_rank = 20){
+make_agretopicity_dbi <- function(prediction_dbi, max_rank = 20){
     prediction_dbi %>% 
         dplyr::filter(RANK <= max_rank) %>% 
         dplyr::filter(!is.na(HLA_ALT_BINDING)) %>% 
         dplyr::filter(!is.na(HLA_REF_BINDING)) %>% 
         dplyr::mutate(LOG_AGRETOPICITY = log10(HLA_ALT_BINDING /HLA_REF_BINDING)) %>% 
-        dplyr::select(TEAM, LOG_AGRETOPICITY) %>% 
-        dplyr::as_tibble() %>% 
-        code_df_by_team(team)
+        dplyr::select(TEAM, LOG_AGRETOPICITY) 
 }
 
-make_overlap_df <- function(prediction_dbi, max_rank = 20){
+make_overlap_dbi <- function(prediction_dbi, max_rank = 20){
     prediction_dbi %>% 
         dplyr::filter(RANK <= max_rank) %>% 
-        dplyr::arrange(RANK) %>% 
-        dplyr::select(RANK, TEAM, PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ) %>% 
-        dplyr::as_tibble() %>% 
-        dplyr::mutate(PMHC = stringr::str_c(HLA_ALLELE, "_", ALT_EPI_SEQ)) %>%
-        dplyr::select(TEAM, PATIENT_ID, PMHC, RANK)
+        dplyr::select(RANK, TEAM, PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ)
 }
 
 # binding validation ----
