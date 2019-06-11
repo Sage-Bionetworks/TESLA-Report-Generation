@@ -77,9 +77,10 @@ make_agretopicity_dbi <- function(prediction_dbi, max_rank = 20){
 }
 
 make_overlap_dbi <- function(prediction_dbi, max_rank = 20){
-    prediction_dbi %>% 
-        dplyr::filter(RANK <= max_rank) %>% 
-        dplyr::select(RANK, TEAM, PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ)
+    overlap_dbi <- prediction_dbi %>% 
+        dplyr::filter(RANK <= 20) %>% 
+        dplyr::mutate(PMHC = CONCAT(HLA_ALLELE, "_", ALT_EPI_SEQ)) %>% 
+        dplyr::select(PATIENT_ID, TEAM,  PMHC) 
 }
 
 # binding validation ----

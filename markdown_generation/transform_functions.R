@@ -1,5 +1,8 @@
 require(dplyr)
 require(tidyr)
+require(forcats)
+require(rlang)
+require(stringr)
 require(magrittr)
 require(vctrs)
 require(assertthat)
@@ -39,27 +42,77 @@ code_df_by_team <- purrr::partial(
     na_value    = "No Team", 
     other_value = "Other teams")
 
+
+relevel_df_column <- function(
+    df, new_col, order_col, group_col, filter_col, filter_vals){
+    
+    new_levels <- get_ordered_column_values(
+        df, group_col, order_col, filter_col, filter_vals)
+    
+    relevel_column(df, new_levels, new_col, group_col)
+}
+
+get_ordered_column_values <- function(
+    df, group_col, order_col, filter_col, filter_vals){
+    
+    order_col_symbol <- rlang::sym(order_col)
+    filter_string <- create_filter_string(filter_col, filter_vals)
+    
+    df %>% 
+        dplyr_df_by_string(filter_string, dplyr::filter()) %>% 
+        dplyr::arrange(!!order_col_symbol) %>% 
+        magrittr::extract2(group_col) %>% 
+        unique()
+}
+
+relevel_column <- function(df, new_levels, column){
+    string <- create_relevel_mutate_string(column, new_levels)
+    dplyr_df_by_string(df, string, dplyr::mutate)
+}
+
+dplyr_df_by_string <- function(
+    df, string, 
+    dplyr_function = c(dplyr::filter, dplyr::mutate)){
+    
+    expression <- rlang::parse_expr(string)
+    result_df  <- dplyr_function(!!expression)
+}
+
+create_relevel_mutate_string <- function(column){
+    mutate_string <- stringr::str_c(
+        column,
+        " = forcats::fct_relevel(", 
+        column, 
+        ", new_levels)") 
+}
+
+create_filter_string <- function(column, values, exclude = F){
+    filter_string <- values %>% 
+        stringr::str_c("'", ., "'") %>% 
+        stringr::str_c(collapse = ", ") %>% 
+        stringr::str_c(column, " %in% c(", ., ")") 
+    if(exclude) filter_string <- stringr::str_c("!", filter_string)
+    filter_string
+}
+
 # submission plot functions ----
 
 
-
-
-create_median_overlap_df <- function(df, team){
-    df <- dplyr::as_tibble(df)
+create_median_overlap_df <- function(dbi, team){
+    df <- dplyr::as_tibble(dbi)
     assertthat::assert_that(assertthat::has_name(df, c("TEAM"))) 
     assertthat::assert_that(assertthat::has_name(df, c("PATIENT_ID"))) 
-    assertthat::assert_that(assertthat::has_name(df, c("HLA_ALLELE"))) 
-    assertthat::assert_that(assertthat::has_name(df, c("ALT_EPI_SEQ"))) 
+    assertthat::assert_that(assertthat::has_name(df, c("PMHC"))) 
     df %>% 
-        dplyr::mutate(PMHC = stringr::str_c(HLA_ALLELE, "_", ALT_EPI_SEQ)) %>%
-        dplyr::select(TEAM, PATIENT_ID, PMHC) %>% 
-        dplyr::group_by(PATIENT_ID, TEAM) %>% 
-        dplyr::summarise(PMHC = list(PMHC)) %>% 
-        dplyr::group_by(PATIENT_ID) %>% 
-        dplyr::do(create_pmhc_combinations_df(.)) %>% 
+        dplyr::group_by(PATIENT_ID, TEAM) %>%
+        dplyr::summarise(PMHCS = list(PMHC)) %>%
+        dplyr::ungroup() %>% 
+        dplyr::full_join(., ., by = c("PATIENT_ID"), suffix = c("", "2")) %>% 
+        dplyr::filter(TEAM != TEAM2) %>%
+        dplyr::select(-TEAM2) %>% 
         dplyr::mutate(OVERLAP = purrr::map2_dbl(
-            PMHC, 
-            PMHC2, 
+            PMHCS, 
+            PMHCS2, 
             calc_overlap_perc)) %>% 
         dplyr::select(PATIENT_ID, TEAM, OVERLAP) %>% 
         dplyr::group_by(PATIENT_ID, TEAM) %>% 

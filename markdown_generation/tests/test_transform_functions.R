@@ -1,9 +1,40 @@
 library(tibble)
 library(testthat)
-library(magrittr)
-library(purrr)
 source("../transform_functions.R")
 context("Tranform functions")
+
+
+test_that("create_filter_string", {
+    expect_equal(
+        create_filter_string("Column", "Value"),
+        "Column %in% c('Value')")
+    expect_equal(
+        create_filter_string("Column", "Value", exclude = T),
+        "!Column %in% c('Value')")
+    expect_equal(
+        create_filter_string("Column", c("Value1", "Value2")),
+        "Column %in% c('Value1', 'Value2')")
+})
+
+
+test_that("relevel_df_column", {
+    df <- tibble::tribble(
+        ~COL1, ~COL2, ~COL3,
+        "A", 2, "GROUP1",
+        "A", 3, "GROUP2",
+        "B", 2, "GROUP1",
+        "B", 1, "GROUP2",
+        "C", 1, "GROUP1",
+        "C", 2, "GROUP2"
+    )
+    expect_equal(code_df_by_column(input_df, "T1", "COL1")$New_column,
+                 c("matches", "doesn't match", "matches", "doesn't match", NA))
+    expect_equal(code_df_by_column(input_df, "T2", "COL1")$New_column,
+                 c("doesn't match", "matches", "doesn't match", "doesn't match", NA))
+    expect_equal(code_df_by_column(input_df, "A", "COL2")$New_column,
+                 c("matches", "doesn't match", "doesn't match", NA, "doesn't match"))
+
+})
 
 
 test_that("code_df_by_column", {

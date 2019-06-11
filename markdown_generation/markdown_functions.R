@@ -1,19 +1,6 @@
 
 
-relevel_df <- function(df, column){
-    new_lvs <- df %>% 
-        dplyr::filter(TEAM == "Measured") %>% 
-        dplyr::arrange(LOG_BINDING) %>% 
-        magrittr::use_series(ALT_EPI_SEQ) %>% 
-        unique()
-    
-    new_df <- dplyr::mutate(
-        df, 
-        ALT_EPI_SEQ = forcats::fct_relevel(
-            ALT_EPI_SEQ, new_lvs))
-    
-    return(new_df)
-}
+
 
 make_submission_plot_dfs <- function(round, source, team){
     prediction_dbi <- make_submission_plot_prediction_dbi(round, source)
