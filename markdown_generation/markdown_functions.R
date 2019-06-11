@@ -1,6 +1,6 @@
 
 make_submission_plot_dfs <- function(round, source, team){
-    prediction_dbi <- make_submission_plot_prediction_dbi(round, source)
+    prediction_dbi <- make_combined_prediction_dbi(round, source)
 
     log_peptides_dbi <- make_log_peptides_dbi(prediction_dbi)
     peptide_length_dbi <- make_peptide_length_dbi(prediction_dbi)
