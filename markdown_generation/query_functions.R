@@ -1,3 +1,8 @@
+require(magrittr)
+require(bigrquery)
+require(dplyr)
+require(purrr)
+
 ## query functions 
 
 ## These functions query Bigquery tables and either return a DBI::dbConnect connection, or a dplyr::tibble df
@@ -13,31 +18,93 @@ BQ_DBI     <- DBI::dbConnect(
 # general ----
 
 
-make_submission_dbi <- function(rounds = c("1", "2", "x")){
+make_submission_dbi <- function(round = c("1", "2", "x")){
     submission_dbi <- BQ_DBI %>% 
         dplyr::tbl("Submissions") %>% 
-        dplyr::filter(ROUND %in% rounds) %>% 
+        dplyr::filter(ROUND %in% round) %>% 
         dplyr::select(SUBMISSION_ID, PATIENT_ID, TEAM)
 }
 
-make_prediction_dbi <- function(sources = c("fastq", "vcf"), ranked = T){
-    prediction_dbi <- BQ_DBI %>% 
+make_prediction_dbi <- function(
+    source = c("fastq", "vcf"), 
+    ranked = T,
+    rank_filter = F,
+    max_rank = NA
+){
+    dbi <- BQ_DBI %>% 
         dplyr::tbl("Predictions") %>% 
-        dplyr::filter(SOURCE %in% sources) %>% 
+        dplyr::filter(SOURCE %in% source) %>% 
         dplyr::arrange(RANK)
-    if(ranked) prediction_dbi <- dplyr::filter(prediction_dbi, !is.na(RANK))
-    return(prediction_dbi)
+    if(rank_filter) dbi <- dplyr::filter(dbi, RANK <= max_rank)
+    if(ranked && !rank_filter) dbi <- dplyr::filter(dbi, !is.na(RANK))
+    return(dbi)
 }
+
+
+make_lji_binding_dbi <- function(){
+    BQ_DBI %>%
+        dplyr::tbl("Validated_Bindings") %>%
+        dplyr::filter(!is.na(LJI_BINDING)) %>%
+        dplyr::mutate(LOG_BINDING = log10(LJI_BINDING + 1))  %>%
+        dplyr::select(ALT_EPI_SEQ, HLA_ALLELE, LOG_BINDING) %>% 
+        dplyr::distinct()
+}
+
+
+make_binding_assay_dbi <- function(){
+    dbi <- 
+        c("TCR_NANOPARTICLE", "TCR_FLOW_I", "TCR_FLOW_II") %>% 
+        purrr::map(make_binding_assay_dbi_by_col) %>% 
+        purrr::reduce(dplyr::union_all) %>% 
+        dplyr::filter(!is.na(RESULT)) %>% 
+        dplyr::distinct() %>% 
+        dplyr::mutate(RESULT = dplyr::if_else(RESULT == "+", T, F)) %>% 
+        dplyr::group_by_at(vars(-"RESULT")) %>% 
+        dplyr::summarise(RESULT = any(RESULT)) %>% 
+        dplyr::ungroup()
+}
+
+make_binding_assay_dbi_by_col <- function(col){
+    BQ_DBI %>% 
+        dplyr::tbl("Validated_Bindings") %>% 
+        dplyr::select(
+            "PATIENT_ID", 
+            "HLA_ALLELE", 
+            "ALT_EPI_SEQ",
+            "RESULT" = col
+        ) %>% 
+        dplyr::mutate(ASSAY = col) 
+}
+
+make_epitope_assay_dbi <- function(){
+    BQ_DBI %>% 
+        dplyr::tbl("Validated_Epitopes") %>% 
+        dplyr::select(
+            "PATIENT_ID", 
+            "ALT_EPI_SEQ",
+            "RESULT" = "TCELL_REACTIVITY"
+        ) %>% 
+        dplyr::mutate(ASSAY = "TCELL_REACTIVITY") %>%
+        dplyr::filter(!is.na(RESULT)) %>% 
+        dplyr::distinct() %>% 
+        dplyr::mutate(RESULT = dplyr::if_else(RESULT == "+", T, F)) %>% 
+        dplyr::group_by_at(vars(-"RESULT")) %>% 
+        dplyr::summarise(RESULT = any(RESULT)) %>% 
+        dplyr::ungroup()
+}
+
+
+
 
 # submission ----
 
 make_submission_plot_prediction_dbi <- function(
-    rounds = c("1", "2", "x"),
-    sources = c("fastq", "vcf"),
+    round = c("1", "2", "x"),
+    source = c("fastq", "vcf"),
     ranked = T){
 
-    submission_dbi <- make_submission_dbi(rounds)
-    prediction_dbi <- make_prediction_dbi(sources, ranked) 
+    submission_dbi <- make_submission_dbi(round)
+    prediction_dbi <- make_prediction_dbi(source, ranked) 
     
     dbi <- 
         dplyr::inner_join(prediction_dbi, submission_dbi) %>% 
@@ -101,19 +168,13 @@ make_combined_binding_prediction_dbi <- function(round, src){
             LOG_BINDING)
 }
 
-make_binding_validation_dbi <- function(){
-    validation_dbi <- BQ_DBI %>%
-        dplyr::tbl("Validated_Bindings") %>%
-        dplyr::filter(!is.na(LJI_BINDING)) %>%
-        dplyr::mutate(LOG_BINDING = log10(LJI_BINDING + 1))  %>%
-        dplyr::select(ALT_EPI_SEQ, HLA_ALLELE, PATIENT_ID, LOG_BINDING) 
-}
+
 
 # validation 1 ----
 
-make_binding_dotplot_df <- function(round, src, team){
-    prediction_dbi <- make_combined_binding_prediction_dbi(round, src) 
-    validation_dbi <- make_binding_validation_dbi() 
+make_binding_dotplot_df <- function(round, source, team){
+    prediction_dbi <- make_combined_binding_prediction_dbi(round, source)
+    validation_dbi <- make_lji_binding_dbi()
     pmhc_dbi       <- make_pmhc_dbi(prediction_dbi, validation_dbi, team)
     
     prediction_df <- prediction_dbi %>% 
@@ -130,7 +191,7 @@ make_binding_dotplot_df <- function(round, src, team){
     
     plot_df <- 
         dplyr::bind_rows(prediction_df, validation_df) %>% 
-        relevel_df
+        relevel_df()
 }
 
 make_pmhc_dbi <- function(prediction_dbi, validation_dbi, team){
@@ -138,7 +199,7 @@ make_pmhc_dbi <- function(prediction_dbi, validation_dbi, team){
         dplyr::filter(TEAM == team) %>% 
         dplyr::inner_join(
             validation_dbi,
-            by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ")) %>% 
+            by = c("HLA_ALLELE", "ALT_EPI_SEQ")) %>% 
         dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ) %>% 
         dplyr::distinct()
 }
@@ -146,70 +207,80 @@ make_pmhc_dbi <- function(prediction_dbi, validation_dbi, team){
 
 # validation 2
 
-make_binding_scatterplot_df <- function(round, src, team){
-    prediction_dbi <- make_combined_binding_prediction_dbi(round, src) %>% 
+make_binding_scatterplot_df <- function(round, source, team){
+    prediction_dbi <- make_combined_binding_prediction_dbi(round, source) %>% 
         dplyr::filter(TEAM == team) %>% 
         dplyr::select(-TEAM) %>% 
-        dplyr::rename(LOG_PREDICTED_BINDING = LOG_BINDING)
+        dplyr::rename(LOG_PREDICTED_BINDING = LOG_BINDING) 
     
-    validation_dbi <- make_binding_validation_dbi() %>% 
-        dplyr::rename(LOG_MEASURED_BINDING = LOG_BINDING)
+    validation_dbi <- 
+        make_lji_binding_dbi () %>% 
+        dplyr::rename(LOG_MEASURED_BINDING = LOG_BINDING) 
     
     scatterplot_df <- 
         dplyr::inner_join(
             prediction_dbi,
             validation_dbi,
-            by = c("HLA_ALLELE", "ALT_EPI_SEQ", "PATIENT_ID")) %>% 
+            by = c("HLA_ALLELE", "ALT_EPI_SEQ")) %>% 
         tibble::as_tibble()
 }
 
 # validation 3 ----
 
-make_validation_df <- function(round, src, team){
+make_validation_df <- function(round, source, team){
     submission_dbi <- make_submission_dbi(round)
     
-    combined_df <-
-        make_prediction_dbi(src) %>% 
+    combined_dbi <-
+        make_prediction_dbi(source) %>% 
         dplyr::filter(RANK <= 20) %>%
         dplyr::inner_join(submission_dbi) %>%
-        dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK) %>% 
-        as_tibble()
+        dplyr::select(PATIENT_ID, TEAM, HLA_ALLELE, ALT_EPI_SEQ, RANK)
     
-    validated_bindings_df <- 
-        make_validated_bindings_df() %>% 
-        dplyr::inner_join(combined_df, by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ"))
+    validated_bindings_dbi <- dplyr::inner_join(
+        make_binding_assay_dbi(), 
+        combined_dbi, 
+        by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ"))
+    
+    combined_dbi2 <- combined_dbi %>% 
+        dplyr::select(-HLA_ALLELE) %>% 
+        dplyr::distinct()
         
-    validated_epitopes_df <- 
-        make_validated_epitopes_df() %>% 
-        dplyr::inner_join(combined_df, by = c("PATIENT_ID", "ALT_EPI_SEQ"))
+    validated_epitopes_dbi <- dplyr::inner_join(
+        make_epitope_assay_dbi(),
+        combined_dbi2, 
+        by = c("PATIENT_ID", "ALT_EPI_SEQ"))
     
     df <- 
-        dplyr::bind_rows(validated_epitopes_df, validated_bindings_df) %>% 
+        dplyr::union_all(validated_epitopes_dbi, validated_bindings_dbi) %>% 
         dplyr::select(TEAM, PATIENT_ID, ASSAY, RESULT, RANK) %>% 
         dplyr::distinct() %>% 
-        dplyr::mutate(ASSAY_NUM = ifelse(RESULT == "+", 1, 0)) %>%
+        as_tibble() %>% 
         dplyr::group_by(TEAM, PATIENT_ID, ASSAY) %>%
-        dplyr::summarise(COUNT = n(), MEAN_RANK = mean(RANK), RATE = mean(ASSAY_NUM)) %>%
+        dplyr::summarise(
+            COUNT = n(), 
+            MEAN_RANK = mean(RANK),
+            RATE = mean(as.numeric(RESULT))
+        ) %>%
         code_df_by_team(team)
 }
 
-make_validated_bindings_df <- function(){
-    validated_bindings_df <- BQ_DBI %>% 
-        dplyr::tbl("Validated_Bindings") %>% 
-        dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
-        dplyr::as_tibble() %>% 
-        tidyr::gather(key = "ASSAY", value = "RESULT", TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
-        tidyr::drop_na() 
-}
-
-make_validated_epitopes_df <- function(){
-    validated_epitopes_df <- BQ_DBI %>% 
-        dplyr::tbl("Validated_Epitopes") %>% 
-        dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
-        dplyr::as_tibble() %>% 
-        tidyr::gather(key = "ASSAY", value = "RESULT", TCELL_REACTIVITY) %>% 
-        tidyr::drop_na()
-}
+# make_validated_bindings_df <- function(){
+#     validated_bindings_df <- BQ_DBI %>% 
+#         dplyr::tbl("Validated_Bindings") %>% 
+#         dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+#         dplyr::as_tibble() %>% 
+#         tidyr::gather(key = "ASSAY", value = "RESULT", TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II) %>% 
+#         tidyr::drop_na() 
+# }
+# 
+# make_validated_epitopes_df <- function(){
+#     validated_epitopes_df <- BQ_DBI %>% 
+#         dplyr::tbl("Validated_Epitopes") %>% 
+#         dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
+#         dplyr::as_tibble() %>% 
+#         tidyr::gather(key = "ASSAY", value = "RESULT", TCELL_REACTIVITY) %>% 
+#         tidyr::drop_na()
+# }
 
 
 

@@ -1,10 +1,7 @@
 
-
-
-
 make_submission_plot_dfs <- function(round, source, team){
     prediction_dbi <- make_submission_plot_prediction_dbi(round, source)
-    
+
     log_peptides_dbi <- make_log_peptides_dbi(prediction_dbi)
     peptide_length_dbi <- make_peptide_length_dbi(prediction_dbi)
     agretopicity_dbi <- make_agretopicity_dbi(prediction_dbi)
@@ -21,57 +18,6 @@ make_submission_plot_dfs <- function(round, source, team){
         ) %>% 
         purrr::map(dplyr::as_tibble) %>% 
         purrr::map(code_df_by_team, team)
-}
-
-
-
-
-
-
-
-
-
-create_p_common_matrix <- function(patient, df){
-    patient_df <- df %>% 
-        dplyr::filter(PATIENT_ID == patient) %>% 
-        dplyr::select(PMHC, TEAM)
-    teams <- sort(unique(patient_df$TEAM))
-    matrix <- matrix(
-        0, 
-        nrow = length(teams),
-        ncol = length(teams), 
-        dimnames = list(teams, teams))
-    for(team1 in teams){
-        for (team2 in teams){
-            matrix[team1, team2] <- 
-                find_percent_unique(patient_df, team1, team2)
-        }
-    }
-    return(matrix)
-}
-
-# find_percent_unique <- function(df, team1, team2, max_rank){
-#     e1 <- df %>% 
-#         filter(TEAM == team1) %>% 
-#         use_series(PMHC)
-#     e2 <- df %>% 
-#         filter(TEAM == team2) %>% 
-#         use_series(PMHC)
-#     en <- min(max_rank, length(e1), length(e2))
-#     if(length(e1) > 0) e1 <- e1[1:en]
-#     if(length(e2) > 0) e2 <- e2[1:en]
-#     diff_n  <- length(setdiff(e1, e2))
-#     if(length(e1) == 0) return(0.0)
-#     result <- 1 - diff_n / length(e1)
-#     return(result)
-# }
-
-create_median_table <- function(matrix){
-    matrix %>%
-        apply(2, median) %>%
-        data.frame %>%
-        rownames_to_column("team") %>%
-        set_names(c("team", "median")) 
 }
 
 
