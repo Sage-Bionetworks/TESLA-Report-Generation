@@ -11,10 +11,8 @@ synapser::synLogin()
 
 #### input
 
-# args <- commandArgs(trailingOnly=TRUE)
-# version <- args[[1]]
-
-version <- "test"
+args <- commandArgs(trailingOnly=TRUE)
+version <- args[[1]]
 
 if(version == "test"){
     id_column <- "Test_report_project_id"

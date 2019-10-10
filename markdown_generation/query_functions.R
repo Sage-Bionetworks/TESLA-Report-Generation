@@ -189,7 +189,7 @@ make_binding_dotplot_df <- function(round, source, team){
     
     plot_df <- 
         dplyr::bind_rows(prediction_df, validation_df) %>% 
-        relevel_df()
+        relevel_epitope_column()
 }
 
 make_pmhc_dbi <- function(prediction_dbi, validation_dbi, team){
@@ -238,7 +238,7 @@ make_validation_df <- function(round, source, team){
     combined_dbi2 <- combined_dbi %>% 
         dplyr::select(-HLA_ALLELE) %>% 
         dplyr::distinct()
-        
+    
     validated_epitopes_dbi <- dplyr::inner_join(
         make_epitope_assay_dbi(),
         combined_dbi2, 

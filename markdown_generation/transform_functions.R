@@ -12,121 +12,53 @@ require(assertthat)
 
 code_df_by_column <- function(
     df, matching_values, column, 
-    new_column  = "New_column",
-    new_value   = "matches", 
-    na_value    = NA, 
-    other_value = "doesn't match"){
-    
-    df %>% 
-        dplyr::rename(TEMP_COL = column) %>% 
-        dplyr::mutate(
-            NEW_COL = ifelse(
-                is.na(TEMP_COL),
-                na_value,
-                ifelse(
-                    TEMP_COL %in% matching_values,
-                    new_value,
-                    other_value
-                )
-            )
-        ) %>% 
-        dplyr::rename(!!column := TEMP_COL) %>% 
-        dplyr::rename(!!new_column := NEW_COL)
+    new_column      = New_column,
+    match_value     = "matches", 
+    non_match_value = "doesn't match",
+    na_value        = NA_character_
+){
+    dplyr::mutate(df, {{new_column}} := dplyr::case_when(
+        is.na({{column}})                ~ na_value,
+        {{column}} %in% matching_values  ~ new_value,
+        TRUE                             ~ other_value
+    ))
 }
 
 code_df_by_team <- purrr::partial(
     code_df_by_column,
-    column      = "TEAM",
-    new_column  = "team_status",
+    column      = TEAM,
+    new_column  = team_status,
     new_value   = "Your team", 
     na_value    = "No Team", 
     other_value = "Other teams")
 
 
-relevel_df <- function(df, column){
-    new_lvs <- df %>% 
-        dplyr::filter(TEAM == "Measured") %>% 
-        dplyr::arrange(LOG_BINDING) %>% 
-        magrittr::use_series(ALT_EPI_SEQ) %>% 
-        unique()
-    
-    new_df <- dplyr::mutate(
-        df, 
-        ALT_EPI_SEQ = forcats::fct_relevel(
-            ALT_EPI_SEQ, new_lvs))
-    
-    return(new_df)
+
+relevel_df_column <- function(df, col, lvl_function, ...){
+    new_lvls <- lvl_function(df, ...)
+    dplyr::mutate(df, {{col}} := forcats::fct_relevel({{col}}, new_lvls))
 }
 
+relevel_epitope_column <- purrr::partial(
+    relevel_df_column,
+    col = ALT_EPI_SEQ,
+    lvl_function = get_epitope_levels
+)
 
-# relevel_df_column <- function(
-#     df, 
-#     new_col, 
-#     order_col, 
-#     group_col, 
-#     filter_col, 
-#     filter_vals
-# ){
-#     new_levels <- get_ordered_column_values(
-#         df, group_col, order_col, filter_col, filter_vals)
-#     
-#     relevel_column(df, new_levels, new_col)
-# }
-# 
-# 
-# 
-# relevel_epitopes_by_binding <- purrr::partial(
-#     relevel_df_column,
-#     new_col = "ALT_EPI_SEQ", 
-#     order_col = "LOG_BINDING", 
-#     group_col = "ALT_EPI_SEQ", 
-#     filter_col = "TEAM", 
-#     filter_vals = "Measured"
-# )
-# 
-# get_ordered_column_values <- function(
-#     df, group_col, order_col, filter_col, filter_vals){
-#     
-#     order_col_symbol <- rlang::sym(order_col)
-#     filter_string <- create_filter_string(filter_col, filter_vals)
-#     
-#     df %>% 
-#         dplyr_df_by_string(filter_string, dplyr::filter) %>% 
-#         dplyr::arrange(!!order_col_symbol) %>% 
-#         magrittr::extract2(group_col) %>% 
-#         unique()
-# }
-# 
-# relevel_column <- function(df, new_levels, column){
-#     string <- create_relevel_mutate_string(column, new_levels)
-#     dplyr_df_by_string(df, string, dplyr::mutate)
-# }
-# 
-# dplyr_mutate_by_string <- function(
-#     df, 
-#     string, 
-#     dplyr_function = c(dplyr::filter, dplyr::mutate)
-# ){
-#     expr <- rlang::parse_expr(string)
-#     result_df  <- dplyr_function(df, !!expr)
-# }
-# 
-# create_relevel_mutate_string <- function(column, new_levels){
-#     mutate_string <- stringr::str_c(
-#         column,
-#         " = forcats::fct_relevel(", 
-#         column, 
-#         ", new_levels)") 
-# }
-# 
-# create_filter_string <- function(column, values, exclude = F){
-#     filter_string <- values %>% 
-#         stringr::str_c("'", ., "'") %>% 
-#         stringr::str_c(collapse = ", ") %>% 
-#         stringr::str_c(column, " %in% c(", ., ")") 
-#     if(exclude) filter_string <- stringr::str_c("!", filter_string)
-#     filter_string
-# }
+get_ordered_values <- function(df, arrange_col, pull_col, filter_expr = T){
+    df %>% 
+        dplyr::filter(!!!rlang::enquos(filter_expr)) %>%
+        dplyr::arrange({{arrange_col}}) %>% 
+        dplyr::pull({{pull_col}}) %>% 
+        unique
+}
+
+get_epitope_levels <- purrr::partial(
+    get_ordered_values,
+    arrange_col = LOG_BINDING,
+    pull_col = ALT_EPI_SEQ,
+    filter_expr = TEAM == "Measured"
+)
 
 # submission plot functions ----
 
