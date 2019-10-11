@@ -24,11 +24,11 @@ parser$add_argument(
 
 args = parser$parse_args()
 
-# testing code
+#testing code
 # args = list(
 #     "version" = "test",
-#     "markdown_types" = "all",
-#     "teams" = "merlin",
+#     "markdown_types" = "round2",
+#     "teams" = "all",
 #     "replace_behavior" = "replace")
 
 
@@ -43,6 +43,7 @@ synapser::synLogin()
 
 
 source("upload_markdown_functions.R")
+devtools::source_url("https://raw.githubusercontent.com/Sage-Bionetworks/synapse_tidy_utils/master/utils.R")
 
 if(args$version == "live") {
     id_column <- "Report_project_id"
@@ -52,7 +53,7 @@ if(args$version == "test") {
 }
 
 if(args$markdown_types == "all"){
-    markdown_types <- c("round1", "round2", "survey", "root")
+    markdown_types <- c("round1", "round2", "round3", "survey", "root")
 } else {
     markdown_types <- args$markdown_types
 }
@@ -95,9 +96,24 @@ if(args$replace_behavior != "add"){
 
 # data processing ----
 
+insect_tbl <- query_synapse_table("select * from syn20782002")
+bird_tbl   <- query_synapse_table("select * from syn8220615") 
+translation_tbl <-
+    dplyr::inner_join(insect_tbl, bird_tbl, by = "realTeam") %>% 
+    dplyr::select(Insect_name = alias.x, Bird_name = alias.y)
+
 r1_teams <- get_teams_from_submissions_dbi(submission_dbi, "1")
 r2_teams <- get_teams_from_submissions_dbi(submission_dbi, "2")
-project_teams <- get_teams_from_submissions_dbi(submission_dbi)
+rx_teams <- get_teams_from_submissions_dbi(submission_dbi, "x")
+r3_teams <- get_teams_from_submissions_dbi(submission_dbi, "3") %>% 
+    dplyr::as_tibble() %>% 
+    dplyr::inner_join(translation_tbl, by = c("value" = "Insect_name")) %>% 
+    dplyr::pull(Bird_name)
+    
+project_teams <- 
+    c(r1_teams, r2_teams, r3_teams, rx_teams) %>% 
+    unique()
+
 survey_teams <- get_survey_teams(project_teams, survey_dbi)
 
 if(!all(project_teams %in% project_df$team)) {
@@ -107,11 +123,12 @@ if(!all(project_teams %in% project_df$team)) {
 team_lists <- list(
     r1_teams,
     r2_teams,
+    r3_teams,
     survey_teams,
     project_teams
 )
 
-types <- c("round1", "round2", "survey", "root")
+types <- c("round1", "round2", "round3", "survey", "root")
 
 create_wiki_param_df <- 
     purrr::map2(
@@ -126,9 +143,14 @@ create_wiki_param_df <-
 if(args$replace_behavior == "replace"){
     delete_wiki_param_df <-  wiki_df %>% 
         dplyr::filter(!is.na(parent_id)) %>% 
-        dplyr::left_join(
+        dplyr::inner_join(
             create_wiki_param_df, 
-            by = c("project_id" = "owner", "parent_id" = "parentWikiId", "title" = "wikiName")) %>% 
+            by = c(
+                "project_id" = "owner",
+                "parent_id" = "parentWikiId", 
+                "title" = "wikiName"
+            )
+        ) %>% 
         dplyr::select(project_id, id) %>% 
         dplyr::rename(wiki_id = id)
 }
@@ -143,17 +165,24 @@ if(args$replace_behavior == "keep"){
 
 
 nested_create_wiki_param_df <- create_wiki_param_df %>% 
-    dplyr::filter(wikiName != "Report") %>%
-    tidyr::nest(
-        -c(team, round, source), 
-        .key = df)
-    
+    dplyr::filter(wikiName != "Report") 
+
+nested_create_wiki_param_df3 <- nested_create_wiki_param_df %>% 
+    dplyr::filter(round == "3") %>% 
+    dplyr::inner_join(translation_tbl, by = c("team" = "Bird_name")) %>% 
+    dplyr::select(-team) %>% 
+    dplyr::rename(team = Insect_name)
+
+nested_create_wiki_param_df <- nested_create_wiki_param_df %>% 
+    dplyr::filter(round != "3") %>% 
+    dplyr::bind_rows(nested_create_wiki_param_df3) %>% 
+    tidyr::nest(tbl = -c(team, round, source)) 
+
 nested_create_root_wiki_param_df <- create_wiki_param_df %>% 
     dplyr::filter(wikiName == "Report") %>% 
     dplyr::select(-parentWikiId) %>% 
-    tidyr::nest(
-        -c(team, round, source), 
-        .key = df)
+    tidyr::nest(tbl = -c(team, round, source)) 
+
 
 # output
 

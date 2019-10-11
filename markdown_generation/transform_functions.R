@@ -19,8 +19,8 @@ code_df_by_column <- function(
 ){
     dplyr::mutate(df, {{new_column}} := dplyr::case_when(
         is.na({{column}})                ~ na_value,
-        {{column}} %in% matching_values  ~ new_value,
-        TRUE                             ~ other_value
+        {{column}} %in% matching_values  ~ match_value,
+        TRUE                             ~ non_match_value
     ))
 }
 
@@ -28,9 +28,10 @@ code_df_by_team <- purrr::partial(
     code_df_by_column,
     column      = TEAM,
     new_column  = team_status,
-    new_value   = "Your team", 
-    na_value    = "No Team", 
-    other_value = "Other teams")
+    match_value   = "Your team", 
+    non_match_value = "Other teams",
+    na_value    = "No Team"
+)
 
 
 

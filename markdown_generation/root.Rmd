@@ -1,4 +1,6 @@
-This report includes summarized data from submissions and validation experiments for Rounds 1 and 2 in TESLA. Data from other teams is shown to allow you to put your team's submissions in context with other teams.
+This report includes summarized data from submissions and validation experiments for Rounds 1 and 2 in TESLA. Submission summaries are also shown for Round 3. Data from other teams is shown to allow you to put your team's submissions in context with other teams.
+
+Round x results are shown in the tables section.
 
 # Data in plots
 In all plots only ranked predictions are shown. In some cases, where noted, only a certian amount of highly ranked predictions are used. For round 2, there are versions from both fastq and vcf predictions if teams made those. 

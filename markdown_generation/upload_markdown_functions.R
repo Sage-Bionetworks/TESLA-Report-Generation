@@ -27,12 +27,11 @@ join_markdown_to_project_df <- function(project_df, markdown_df, teams, typ){
 
 
 
-knit_markdown_by_group <- function(team, source, round, df, root_wiki, verbose = T){
-    if(verbose) log_markdown_by_group(team, source, round, df$owner[[1]])
+knit_markdown_by_group <- function(team, source, round, tbl, root_wiki, verbose = T){
+    if(verbose) log_markdown_by_group(team, source, round, tbl$owner[[1]])
     create_config_yaml(team, source, round)
-    purrr::pmap(df, knit2synapse::knitfile2synapse)
+    purrr::pmap(tbl, knit2synapse::knitfile2synapse)
     clean_up_directory()
-    
 }
 
 
