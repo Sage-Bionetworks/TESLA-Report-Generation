@@ -2,7 +2,7 @@ library(tidyverse)
 library(magrittr)
 library(synapser)
 library(bigrquery)
-
+    
 source("../markdown_generation/query_functions.R")
 
 synapser::synLogin()
@@ -11,14 +11,14 @@ synapser::synLogin()
 
 #### input
 
-# args <- commandArgs(trailingOnly=TRUE)
-# version <- args[[1]]
-# 
-# if(version == "test"){
-#     id_column <- "Test_report_project_id"
-# } else {
-#     id_column <- "Report_project_id"
-# }
+args <- commandArgs(trailingOnly=TRUE)
+version <- args[[1]]
+
+if(version == "test"){
+    id_column <- "Test_report_project_id"
+} else {
+    id_column <- "Report_project_id"
+}
 
 id_column <- "Report_project_id"
 

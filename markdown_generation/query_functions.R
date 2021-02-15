@@ -8,7 +8,7 @@ require(purrr)
 ## These functions query Bigquery tables and either return a DBI::dbConnect connection, or a dplyr::tibble df
 
 BQ_PROJECT <- "neoepitopes"
-BQ_DATASET <- "Version_3"
+BQ_DATASET <- "Version_4"
 
 BQ_DBI     <- DBI::dbConnect(
     bigrquery::bigquery(), 

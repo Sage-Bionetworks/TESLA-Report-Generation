@@ -27,7 +27,7 @@ args = parser$parse_args()
 #testing code
 # args = list(
 #     "version" = "test",
-#     "markdown_types" = "round2",
+#     "markdown_types" = "all",
 #     "teams" = "all",
 #     "replace_behavior" = "replace")
 
@@ -75,13 +75,13 @@ if(args$teams != "all"){
 }
 
 submission_dbi <- 
-    DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+    DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_4") %>% 
     dplyr::tbl("Submissions") %>% 
     dplyr::select(TEAM, ROUND) %>% 
     dplyr::distinct() 
 
 survey_dbi <- 
-    DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_3") %>% 
+    DBI::dbConnect(bigrquery::bigquery(), project = "neoepitopes", dataset = "Version_4") %>% 
     dplyr::tbl("Survey_Answers") %>% 
     dplyr::select(TEAM) %>% 
     dplyr::distinct()
@@ -106,7 +106,7 @@ r1_teams <- get_teams_from_submissions_dbi(submission_dbi, "1")
 r2_teams <- get_teams_from_submissions_dbi(submission_dbi, "2")
 rx_teams <- get_teams_from_submissions_dbi(submission_dbi, "x")
 r3_teams <- get_teams_from_submissions_dbi(submission_dbi, "3") %>% 
-    dplyr::as_tibble() %>% 
+    tibble::enframe() %>% 
     dplyr::inner_join(translation_tbl, by = c("value" = "Insect_name")) %>% 
     dplyr::pull(Bird_name)
     

@@ -40,18 +40,6 @@ lji_binding_dbi <-
     dplyr::rename(MEASURED_BINDING = LJI_BINDING) %>% 
     dplyr::rename(EPITOPE = ALT_EPI_SEQ) 
 
-# validated_bindings_dbi <- BQ_DBI %>% 
-#     dplyr::tbl("Validated_Bindings") %>% 
-#     dplyr::select(PATIENT_ID, HLA_ALLELE, ALT_EPI_SEQ, TCR_NANOPARTICLE, TCR_FLOW_I, TCR_FLOW_II, LJI_BINDING) %>% 
-#     dplyr::inner_join(prediction_dbi, by = c("PATIENT_ID", "HLA_ALLELE", "ALT_EPI_SEQ")) %>% 
-#     dplyr::rename(EPITOPE = ALT_EPI_SEQ) 
-# 
-# validated_epitopes_dbi <- BQ_DBI %>% 
-#     dplyr::tbl("Validated_Epitopes") %>% 
-#     dplyr::select(PATIENT_ID, ALT_EPI_SEQ, TCELL_REACTIVITY) %>% 
-#     dplyr::inner_join(prediction_dbi, by = c("PATIENT_ID", "ALT_EPI_SEQ")) %>% 
-#     dplyr::select(-HLA_ALLELE) %>% 
-#     dplyr::distinct()
 
 validated_bindings_dbi <-
     make_binding_assay_dbi() %>% 
@@ -75,34 +63,6 @@ assay_dbi <-
     
     
 ### data processing   
-
-# assay_df <- 
-#     dplyr::bind_rows(
-#         dplyr::as_tibble(validated_bindings_dbi),
-#         dplyr::as_tibble(validated_epitopes_dbi)) %>% 
-#     dplyr::select(
-#         PATIENT_ID, 
-#         HLA_ALLELE, 
-#         EPITOPE, 
-#         TCR_NANOPARTICLE, 
-#         TCR_FLOW_I, 
-#         TCR_FLOW_II,
-#         TCELL_REACTIVITY, 
-#         TEAM, 
-#         RANK) %>% 
-#     tidyr::gather(
-#         key = "ASSAY", 
-#         value = "RESULT", 
-#         TCR_NANOPARTICLE, 
-#         TCR_FLOW_I, 
-#         TCR_FLOW_II, 
-#         TCELL_REACTIVITY) %>% 
-#     dplyr::filter(!is.na(RESULT)) %>% 
-#     dplyr::distinct() %>% 
-#     dplyr::group_by(PATIENT_ID, HLA_ALLELE, EPITOPE, ASSAY) %>% 
-#     dplyr::mutate(NUM_PREDICTED_EPITOPES = dplyr::n()) %>% 
-#     dplyr::mutate(MEDIAN_RANK = median(RANK, na.rm = T)) %>% 
-#     dplyr::ungroup()
 
 assay_param_df <- assay_dbi %>% 
     dplyr::as_tibble() %>% 
